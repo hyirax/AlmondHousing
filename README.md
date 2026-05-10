@@ -17,7 +17,6 @@
 
 * 🌍 **全球首发 7 国语言支持**：支持 中（简/繁）、英、日、韩、德、法 界面秒切，国际服/国服玩家无缝通用。
 * 📊 **高级清单导出**：支持一键导出 **Teamcraft 导入文本** 或 **多语言 CSV 购物清单**，装修采购不再头大。
-* 🎨 **全新 UI 设计**：摒弃了亮紫色，采用高级深空灰配色，排版更紧凑，操作一气呵成。
 * 🏗️ **跨平台兼容**：完美支持 [MakePlace](https://jawslouis.itch.io/makeplace) 和 [ReMakePlace](https://github.com/RemakePlace/app) 的 `.json` 装修图纸。
 
 ---
@@ -41,7 +40,7 @@ https://raw.githubusercontent.com/hyirax/AlmondHousing/master/pluginmaster.json
 
 ## 🎮 核心功能 (Features)
 
-在聊天框输入 **`/almond`** 或 **`/makeplace`** 唤出控制台。
+在聊天框输入 **`/almond`** 唤出控制台。
 
 ### 🌍 语言热切换
 
