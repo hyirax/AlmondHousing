@@ -20,15 +20,18 @@ namespace AlmondHousing.Gui
         private string CustomTag = string.Empty;
         private readonly Dictionary<uint, uint> iconToFurniture = new() { };
 
-        // === 🎨 全新配色方案：高级深空灰 (代替原来的紫色) ===
-        private readonly Vector4 THEME_BASE = new(0.20f, 0.20f, 0.20f, 1f);     // 基础深灰
-        private readonly Vector4 THEME_HOVER = new(0.35f, 0.35f, 0.35f, 1f);    // 悬停浅灰
-        private readonly Vector4 THEME_ACTIVE = new(0.45f, 0.45f, 0.45f, 1f);   // 点击亮灰
-        private readonly Vector4 THEME_HEADER = new(0.15f, 0.15f, 0.15f, 0.8f); // 标题栏透明灰
+        // === 🎨 全新配色方案：高级深空灰 ===
+        private readonly Vector4 THEME_BASE = new(0.20f, 0.20f, 0.20f, 1f);     
+        private readonly Vector4 THEME_HOVER = new(0.35f, 0.35f, 0.35f, 1f);    
+        private readonly Vector4 THEME_ACTIVE = new(0.45f, 0.45f, 0.45f, 1f);   
+        private readonly Vector4 THEME_HEADER = new(0.15f, 0.15f, 0.15f, 0.8f); 
 
         private FileDialogManager FileDialogManager { get; }
 
         private Dalamud.Game.ClientLanguage currentExportLang = Dalamud.Game.ClientLanguage.English;
+        
+        // === 🔍 新增：全局搜索词变量 ===
+        private string searchQuery = string.Empty;
 
         public ConfigurationWindow(AlmondHousing plugin) : base(plugin)
         {
@@ -49,6 +52,11 @@ namespace AlmondHousing.Gui
                 DrawGeneralSettings();
                 if (ImGui.BeginChild("##ItemListRegion"))
                 {
+                    // === 🔍 新增：极其优雅的全宽搜索框 ===
+                    ImGui.SetNextItemWidth(-1); // -1 表示宽度占满整行
+                    ImGui.InputTextWithHint("##SearchBox", Lang.GetText("Search furniture name..."), ref searchQuery, 256);
+                    ImGui.Dummy(new Vector2(0, 5));
+
                     // 应用新的灰色主题到折叠面板
                     ImGui.PushStyleColor(ImGuiCol.Header, THEME_HEADER);
                     ImGui.PushStyleColor(ImGuiCol.HeaderHovered, THEME_HOVER);
@@ -98,12 +106,10 @@ namespace AlmondHousing.Gui
 
         protected override void DrawUi()
         {
-            // 应用新的灰色主题到主窗口和按钮
             ImGui.PushStyleColor(ImGuiCol.TitleBgActive, THEME_BASE);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, THEME_HOVER);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, THEME_ACTIVE);
-
-            // 稍微调宽一点窗口，防止一行放不下
+            
             ImGui.SetNextWindowSize(new Vector2(580, 450), ImGuiCond.FirstUseEver);
 
             DrawAllUi();
@@ -174,7 +180,7 @@ namespace AlmondHousing.Gui
             }
             catch (Exception e)
             {
-                LogError(string.Format(Lang.GetText("Save Error: {0}"), e.Message), e.StackTrace);
+                LogError(string.Format(Lang.GetText("Save Error: {0}"), e.Message), e.StackTrace ?? "");
             }
         }
 
@@ -199,22 +205,19 @@ namespace AlmondHousing.Gui
             }
             catch (Exception e)
             {
-                LogError(string.Format(Lang.GetText("Load Error: {0}"), e.Message), e.StackTrace);
+                LogError(string.Format(Lang.GetText("Load Error: {0}"), e.Message), e.StackTrace ?? "");
             }
         }
 
         unsafe private void DrawGeneralSettings()
         {
-            // === 防倒卖大字报 开始 ===
-            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.2f, 0.2f, 1.0f));
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.2f, 0.2f, 1.0f)); 
             ImGui.TextWrapped("严正声明：本汉化插件完全免费且开源！如果你是在闲鱼等平台花钱买的，请立刻退款并反手举报！闲鱼倒卖死妈！");
-            ImGui.PopStyleColor();
+            ImGui.PopStyleColor(); 
+            ImGui.Dummy(new Vector2(0, 5)); 
+            ImGui.Separator(); 
             ImGui.Dummy(new Vector2(0, 5));
-            ImGui.Separator();
-            ImGui.Dummy(new Vector2(0, 5));
-            // === 防倒卖大字报 结束 ===
 
-            // ================= 🚀 全新紧凑控制台：语言与导出合并 =================
             string[] supportedLangs = { "zh", "zh_TW", "en", "ja", "ko", "de", "fr" };
             string[] supportedLangNames = { "简体中文", "繁體中文", "English", "日本語", "한국어", "Deutsch", "Français" };
             int currentLangIndex = Array.IndexOf(supportedLangs, Config.UILanguage);
@@ -227,7 +230,6 @@ namespace AlmondHousing.Gui
                 Dalamud.Game.ClientLanguage.French
             };
 
-            // 【第一列】：界面语言
             ImGui.SetNextItemWidth(100);
             if (ImGui.BeginCombo("##UILangCombo", supportedLangNames[currentLangIndex]))
             {
@@ -238,7 +240,7 @@ namespace AlmondHousing.Gui
                     {
                         Config.UILanguage = supportedLangs[i];
                         Config.Save();
-                        Lang.SetLanguage(Config.UILanguage);
+                        Lang.SetLanguage(Config.UILanguage); 
                     }
                     if (isSelected) ImGui.SetItemDefaultFocus();
                 }
@@ -248,7 +250,6 @@ namespace AlmondHousing.Gui
 
             ImGui.SameLine();
 
-            // 【第二列】：导出语言
             ImGui.SetNextItemWidth(100);
             if (ImGui.BeginCombo("##ExportLangCombo", currentExportLang.ToString()))
             {
@@ -267,7 +268,6 @@ namespace AlmondHousing.Gui
 
             ImGui.SameLine();
 
-            // 【第三列】：导出 Teamcraft
             if (ImGui.Button(Lang.GetText("Export for Teamcraft")))
             {
                 ExportToTeamcraft(currentExportLang);
@@ -277,7 +277,6 @@ namespace AlmondHousing.Gui
 
             ImGui.SameLine();
 
-            // 【第四列】：导出 CSV
             if (ImGui.Button(Lang.GetText("Export to CSV")))
             {
                 ExportToCSV(currentExportLang);
@@ -288,7 +287,6 @@ namespace AlmondHousing.Gui
             ImGui.Dummy(new Vector2(0, 5));
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 5));
-            // ===================================================================
 
             if (ImGui.Checkbox(Lang.GetText("Label Furniture"), ref Config.DrawScreen)) Config.Save();
             if (Config.ShowTooltips && ImGui.IsItemHovered())
@@ -302,7 +300,6 @@ namespace AlmondHousing.Gui
             ImGui.TextUnformatted(Lang.GetText("Show Tooltips"));
 
             ImGui.Dummy(new Vector2(0, 5));
-
 
             ImGui.Text(Lang.GetText("Layout"));
 
@@ -548,16 +545,23 @@ namespace AlmondHousing.Gui
             }
             catch (Exception e)
             {
-                LogError(e.Message, e.StackTrace);
+                LogError(e.Message, e.StackTrace ?? "");
             }
 
         }
 
         private void DrawItemList(List<HousingItem> itemList, bool isUnused = false)
         {
+            // === 🔍 核心黑科技：瞬间过滤列表 ===
+            // 如果搜索框为空，显示全部；如果搜索框有字，只显示名字包含该字的家具（忽略大小写）
+            var filteredList = itemList.Where(x => 
+                string.IsNullOrEmpty(searchQuery) || 
+                x.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
 
             if (ImGui.Button(Lang.GetText("Sort")))
             {
+                // 注意：这里仍然对原列表进行排序，这样下次渲染时过滤出来的也是有序的
                 itemList.Sort((x, y) =>
                 {
                     if (x.Name.CompareTo(y.Name) != 0)
@@ -587,9 +591,7 @@ namespace AlmondHousing.Gui
                 ImGui.Text(Lang.GetText("Note: Missing items, incorrect dyes, and items on unselected floors are grayed out"));
             }
 
-            // name, position, r, color, set
             int columns = isUnused ? 4 : 5;
-
 
             ImGui.Columns(columns, "ItemList", true);
             ImGui.Separator();
@@ -606,9 +608,10 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
 
-            for (int i = 0; i < itemList.Count(); i++)
+            // === 🔍 注意：这里循环渲染的是 filteredList（被过滤过的列表） ===
+            for (int i = 0; i < filteredList.Count; i++)
             {
-                var housingItem = itemList[i];
+                var housingItem = filteredList[i];
                 var displayName = housingItem.Name;
 
                 if (itemSheet.HasRow(housingItem.ItemKey))
@@ -637,11 +640,9 @@ namespace AlmondHousing.Gui
             }
 
             ImGui.Columns(1);
-
         }
 
         #endregion
-
 
         #region Draw Screen
         protected override void DrawScreen()
@@ -723,6 +724,8 @@ namespace AlmondHousing.Gui
             string exportText = "";
             foreach (var item in aggregatedItems)
             {
+                // Teamcraft 最稳定识别的依然是 "名字 x数量" 的格式
+                // 但因为我们底层改用 ID 聚合了，所以导出的名称绝对不会串台或统计错乱
                 exportText += $"{item.Value.Name} x{item.Value.Count}\n";
             }
             ImGui.SetClipboardText(exportText);
@@ -734,27 +737,31 @@ namespace AlmondHousing.Gui
             var aggregatedItems = AggregateItems(targetLang);
             if (aggregatedItems.Count == 0) return;
 
-            // --- 🔧 已修复：完全本地化的 CSV 表头 ---
+            string headerId = Lang.GetText("Item ID");
             string headerName = Lang.GetText("Item Name");
             string headerCount = Lang.GetText("Quantity");
             string headerDye = Lang.GetText("Dye/Stain");
             string noneText = Lang.GetText("None");
 
-            string exportText = $"{headerName},{headerCount},{headerDye}\n";
+            // --- 改造点：CSV 表头正式加入 物品ID ---
+            string exportText = $"{headerId},{headerName},{headerCount},{headerDye}\n";
 
             foreach (var item in aggregatedItems)
             {
                 string dyeName = item.Value.Dye == "" ? noneText : item.Value.Dye;
-                exportText += $"{item.Value.Name},{item.Value.Count},{dyeName}\n";
+                
+                // --- 改造点：数据行加入 真实的物品ID ---
+                exportText += $"{item.Value.ItemId},{item.Value.Name},{item.Value.Count},{dyeName}\n";
             }
-
+            
             ImGui.SetClipboardText(exportText);
             Log(Lang.GetText("CSV copied to clipboard! Paste it into Excel."));
         }
 
-        private Dictionary<string, (string Name, int Count, string Dye)> AggregateItems(Dalamud.Game.ClientLanguage targetLang)
+        // --- 核心改造点：返回值加上了 uint ItemId，并且以 ID 作为字典的聚合键 ---
+        private Dictionary<string, (uint ItemId, string Name, int Count, string Dye)> AggregateItems(Dalamud.Game.ClientLanguage targetLang)
         {
-            var results = new Dictionary<string, (string Name, int Count, string Dye)>();
+            var results = new Dictionary<string, (uint ItemId, string Name, int Count, string Dye)>();
             var allItems = Plugin.InteriorItemList.Concat(Plugin.ExteriorItemList).ToList();
 
             var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>(targetLang);
@@ -765,6 +772,7 @@ namespace AlmondHousing.Gui
                 if (!itemSheet.HasRow(housingItem.ItemKey)) continue;
                 var itemRow = itemSheet.GetRow(housingItem.ItemKey);
 
+                uint itemId = itemRow.RowId; // 获取游戏底层的真实物品ID
                 string itemName = itemRow.Name.ToString();
 
                 string dyeName = "";
@@ -774,15 +782,16 @@ namespace AlmondHousing.Gui
                     dyeName = stainRow.Name.ToString();
                 }
 
-                string uniqueKey = $"{itemName}_{dyeName}";
+                // 使用 ID_染色 作为唯一键，彻底杜绝名字匹配带来的隐患！
+                string uniqueKey = $"{itemId}_{dyeName}";
 
                 if (results.ContainsKey(uniqueKey))
                 {
-                    results[uniqueKey] = (itemName, results[uniqueKey].Count + 1, dyeName);
+                    results[uniqueKey] = (itemId, itemName, results[uniqueKey].Count + 1, dyeName);
                 }
                 else
                 {
-                    results[uniqueKey] = (itemName, 1, dyeName);
+                    results[uniqueKey] = (itemId, itemName, 1, dyeName);
                 }
             }
             return results;

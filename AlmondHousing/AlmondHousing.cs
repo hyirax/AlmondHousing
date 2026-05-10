@@ -19,8 +19,8 @@ namespace AlmondHousing
         
         // 公开插件所在文件夹的路径，方便一会儿界面上的按钮切换语言时使用
         public static string PluginDirectory { get; private set; }
-
-        private IDalamudPluginInterface PluginInterface { get; init; }
+        private IDalamudPluginInterface PluginInterface { get; init; } = null!;
+        
         
         public string Name => "AlmondHousing";
         public PluginUi Gui { get; private set; }
@@ -42,7 +42,7 @@ namespace AlmondHousing
 
         public static bool ApplyChange = false;
 
-        public static SaveLayoutManager LayoutManager;
+        public static SaveLayoutManager LayoutManager = null!;
 
         public static bool logHousingDetour = false;
 
@@ -284,7 +284,7 @@ namespace AlmondHousing
             catch (Exception e)
             {
                 // 汉化修改
-                LogError(string.Format(Lang.GetText("Error: {0}"), e.Message), e.StackTrace);
+                LogError(string.Format(Lang.GetText("Error: {0}"), e.Message), e.StackTrace ?? "");
             }
 
             Cleanup();
@@ -819,7 +819,7 @@ namespace AlmondHousing
             }
             catch (Exception e)
             {
-                LogError(e.Message, e.StackTrace);
+                LogError(e.Message, e.StackTrace ?? "");
             }
         }
 

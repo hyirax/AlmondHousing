@@ -74,7 +74,10 @@
     "Item Name": "物品名称",
     "Quantity": "数量",
     "Dye/Stain": "染色/材质",
-    "None": "无"
+    "None": "无",
+    "Search": "搜索",
+    "Search furniture name...": "输入家具名称进行搜索...",
+    "Item ID": "物品ID"
   },
   "zh_TW": {
     "Interior Furniture": "室內家具",
@@ -151,7 +154,10 @@
     "Item Name": "物品名稱",
     "Quantity": "數量",
     "Dye/Stain": "染色/材質",
-    "None": "無"
+    "None": "無",
+    "Search": "搜尋",
+    "Search furniture name...": "輸入家具名稱進行搜尋...",
+    "Item ID": "物品ID"
   },
   "en": {
     "Interior Furniture": "Interior Furniture",
@@ -228,7 +234,10 @@
     "Item Name": "Item Name",
     "Quantity": "Quantity",
     "Dye/Stain": "Dye/Stain",
-    "None": "None"
+    "None": "None",
+    "Search": "Search",
+    "Search furniture name...": "Search furniture name...",
+    "Item ID": "Item ID"
   },
   "ja": {
     "Interior Furniture": "室内家具",
@@ -305,7 +314,10 @@
     "Item Name": "アイテム名",
     "Quantity": "数量",
     "Dye/Stain": "染色/材質",
-    "None": "なし"
+    "None": "なし",
+    "Search": "検索",
+    "Search furniture name...": "家具名で検索...",
+    "Item ID": "アイテムID"
   },
   "ko": {
     "Interior Furniture": "실내 가구",
@@ -353,7 +365,7 @@
     "Finished applying layout": "레이아웃 적용 완료!",
     "Loaded {0} furniture items": "{0}개의 가구를 성공적으로 불러왔습니다",
     "Scheduling next item placement, {0} remains": "다음 아이템 배치 중, {0}개 남음...",
-    "{0} is already correctly placed": "{0}은(는) 이미 올바른 위치에 있습니다",
+    "{0} is 이미 올바른 위치에 있습니다": "{0}은(는) 이미 올바른 위치에 있습니다",
     "Placing {0}": "배치 중: {0}",
     "Applying layout with interval of {0}ms": "{0}ms 간격으로 배치를 시작합니다",
     "Error occured while writing position! Item Was null": "좌표를 쓰는 중 오류 발생! 아이템 데이터가 없습니다",
@@ -382,7 +394,10 @@
     "Item Name": "아이템 이름",
     "Quantity": "수량",
     "Dye/Stain": "염색/재질",
-    "None": "없음"
+    "None": "없음",
+    "Search": "검색",
+    "Search furniture name...": "가구 이름 검색...",
+    "Item ID": "아이템 ID"
   },
   "de": {
     "Interior Furniture": "Inneneinrichtung",
@@ -459,7 +474,10 @@
     "Item Name": "Gegenstandsname",
     "Quantity": "Menge",
     "Dye/Stain": "Farbe/Material",
-    "None": "Keine"
+    "None": "Keine",
+    "Search": "Suchen",
+    "Search furniture name...": "Möbelname suchen...",
+    "Item ID": "Artikel-ID"
   },
   "fr": {
     "Interior Furniture": "Mobilier d'intérieur",
@@ -536,6 +554,9 @@
     "Item Name": "Nom de l'objet",
     "Quantity": "Quantité",
     "Dye/Stain": "Teinture/Matériau",
-    "None": "Aucun"
+    "None": "Aucun",
+    "Search": "Rechercher",
+    "Search furniture name...": "Rechercher un nom de meuble...",
+    "Item ID": "ID d'objet"
   }
 }
