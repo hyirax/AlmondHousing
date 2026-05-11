@@ -81,7 +81,7 @@
 * **Drakansoul**：感谢创建并维护了 DisPlace。
 * **NotNite**：感谢根据 Dalamud 服务条款，强行将 MakePlace 插件重新开源。
 * **jawslouis**：感谢制作了非常出色的 MakePlacePlugin 插件。
-* 感谢 **HousingPos**, **BDTH** 以及 **HouseMate** 等前辈项目提供的技术灵感。本插件的 UI 界面在很大程度上借鉴了 HousingPos。
+* 感谢 **HousingPos**, **BDTH** 以及 **HouseMate** 等前辈项目提供的技术灵感。
 
 ---
 
