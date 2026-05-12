@@ -344,6 +344,12 @@ namespace AlmondHousing
             rowItem.CorrectLocation = true;
             rowItem.CorrectRotation = true;
 
+            // 🎨 边放边染引擎：在家具成功落地后，如果图纸要求染色，顺手把颜色改对！
+            if (rowItem.Stain != 0)
+            {
+                // 假设用户已经在 Configuration.cs 加上了 public bool EnableDyeOnPlacement { get; set; } = true;
+                Util.DyeManager.DyePlacedFurniture(rowItem, rowItem.Stain);
+            }
         }
 
         public void ApplyLayout()

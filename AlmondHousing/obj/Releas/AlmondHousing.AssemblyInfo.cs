@@ -11,7 +11,7 @@ using System;
 using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("AlmondHousing")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Releas")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("7.5.1")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("7.5.1+e34c3b6a80e3381d25aa78653753981323ef64f7")]
 [assembly: System.Reflection.AssemblyProductAttribute("AlmondHousing")]

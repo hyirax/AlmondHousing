@@ -248,18 +248,144 @@ namespace AlmondHousing.Gui
             ImGui.PopStyleColor();
         }
 
-        // ==========================================
-        // 🚀 核心功能：材料盘点界面 + 实时预算系统
-        // ==========================================
         private void DrawMaterialTab()
         {
+            var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
+            var allItems = Plugin.InteriorItemList.Concat(Plugin.ExteriorItemList).ToList();
+
+            // =======================================
+            // 🎨 模块 A：智能染色同步雷达 (Smart Dye Sync)
+            // =======================================
+            ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Smart Dye Sync"));
+            ImGui.Separator();
+            
+            // 🔥 这里就是控制染色总开关的地方！玩家想不染色可以直接点掉勾选框。
+            bool syncPlaced = Config.EnableDyeSyncPlaced;
+            if (ImGui.Checkbox(Lang.GetText("Sync placed furniture dyes"), ref syncPlaced)) {
+                Config.EnableDyeSyncPlaced = syncPlaced;
+                Config.Save();
+            }
+            
+            ImGui.SameLine();
+            
+            bool dyeOnPlace = Config.EnableDyeOnPlacement;
+            if (ImGui.Checkbox(Lang.GetText("Auto-dye during placement"), ref dyeOnPlace)) {
+                Config.EnableDyeOnPlacement = dyeOnPlace;
+                Config.Save();
+            }
+            
+            ImGui.Dummy(new Vector2(0, 5));
+
+            var dyeAudit = new Dictionary<uint, (string Name, int NeededPlaced, int NeededUnplaced, int Owned)>();
+            foreach (var item in allItems)
+            {
+                if (item.Stain != 0)
+                {
+                    bool isPlaced = item.ItemStruct != IntPtr.Zero;
+                    bool needsSync = false;
+                    
+                    if (isPlaced)
+                    {
+                        unsafe
+                        {
+                            // 💡 修复：使用 HousingGameObject 并且检查 color
+                            var itemStruct = (HousingGameObject*)item.ItemStruct;
+                            if (itemStruct->color != item.Stain) needsSync = true;
+                        }
+                    }
+                    else
+                    {
+                        needsSync = true;
+                    }
+
+                    if (needsSync)
+                    {
+                        uint dyeItemId = Util.DyeManager.GetRequiredDyeItemId(item.Stain);
+                        if (dyeItemId != 0 && itemSheet.HasRow(dyeItemId))
+                        {
+                            if (!dyeAudit.ContainsKey(dyeItemId))
+                            {
+                                string name = itemSheet.GetRow(dyeItemId).Name.ToString();
+                                int owned = InventoryScanner.GetOwnedCount(dyeItemId);
+                                dyeAudit[dyeItemId] = (name, 0, 0, owned);
+                            }
+                            var current = dyeAudit[dyeItemId];
+                            if (isPlaced) current.NeededPlaced++;
+                            else current.NeededUnplaced++;
+                            dyeAudit[dyeItemId] = current;
+                        }
+                    }
+                }
+            }
+
+            // 💡 修复：把 allDyesSufficient 移到循环外面，这样作用域就完全覆盖整个逻辑了
+            bool allDyesSufficient = true;
+
+            if (dyeAudit.Count > 0)
+            {
+                if (ImGui.BeginTable("DyeAuditTable", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+                {
+                    ImGui.TableSetupColumn(Lang.GetText("Dye"), ImGuiTableColumnFlags.WidthStretch);
+                    ImGui.TableSetupColumn(Lang.GetText("Needed (Placed)"), ImGuiTableColumnFlags.WidthFixed, 100f);
+                    ImGui.TableSetupColumn(Lang.GetText("Needed (Unplaced)"), ImGuiTableColumnFlags.WidthFixed, 100f);
+                    ImGui.TableSetupColumn(Lang.GetText("Owned"), ImGuiTableColumnFlags.WidthFixed, 80f);
+                    ImGui.TableSetupColumn(Lang.GetText("Status"), ImGuiTableColumnFlags.WidthFixed, 80f);
+                    ImGui.TableHeadersRow();
+
+                    foreach (var kvp in dyeAudit)
+                    {
+                        var data = kvp.Value;
+                        int totalNeeded = 0;
+                        if (Config.EnableDyeSyncPlaced) totalNeeded += data.NeededPlaced;
+                        if (Config.EnableDyeOnPlacement) totalNeeded += data.NeededUnplaced;
+
+                        bool sufficient = data.Owned >= totalNeeded;
+                        if (!sufficient && totalNeeded > 0) allDyesSufficient = false;
+
+                        ImGui.TableNextRow();
+                        ImGui.TableNextColumn(); ImGui.Text(data.Name);
+                        ImGui.TableNextColumn(); ImGui.Text($"{data.NeededPlaced}");
+                        ImGui.TableNextColumn(); ImGui.Text($"{data.NeededUnplaced}");
+                        ImGui.TableNextColumn(); ImGui.Text($"{data.Owned}");
+                        
+                        ImGui.TableNextColumn();
+                        if (totalNeeded == 0) ImGui.TextDisabled("-");
+                        else if (sufficient) ImGui.TextColored(new Vector4(0.4f, 1f, 0.4f, 1f), "OK");
+                        else ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), Lang.GetText("Missing"));
+                    }
+                    ImGui.EndTable();
+                }
+
+                ImGui.Dummy(new Vector2(0, 5));
+                
+                // 一键同步按钮 (带防呆锁定)
+                if (Config.EnableDyeSyncPlaced)
+                {
+                    if (!allDyesSufficient) ImGui.BeginDisabled();
+                    if (ImGui.Button(Lang.GetText("Execute Dye Sync"), new Vector2(200, 30)))
+                    {
+                        ExecuteDyeSync();
+                    }
+                    if (!allDyesSufficient) ImGui.EndDisabled();
+                }
+            }
+            else
+            {
+                ImGui.TextDisabled(Lang.GetText("All placed furniture dyes are matched."));
+            }
+
+            ImGui.Dummy(new Vector2(0, 15));
+
+
+            // =======================================
+            // 📦 模块 B：常规库存材料盘点与预算计算
+            // =======================================
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Inventory Material Audit"));
             ImGui.Separator();
             ImGui.TextDisabled(Lang.GetText("Automatically scans Bag and Saddlebags."));
             ImGui.Dummy(new Vector2(0, 5));
 
             var materials = AggregateItems(Dalamud.Game.ClientLanguage.English);
-            var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
 
             // --- 🚀 预算查价按钮区 ---
             if (Util.UniversalisClient.IsFetching)
@@ -271,7 +397,6 @@ namespace AlmondHousing.Gui
                 if (ImGui.Button(Lang.GetText("Calculate Budget"), new Vector2(200, 30)))
                 {
                     uint worldId = 0;
-                    // 💡 修复：CurrentWorld 返回 RowRef<World>，需使用 RowId 获取值
                     if (DalamudApi.ObjectTable.Length > 0)
                     {
                         var pc = DalamudApi.ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
@@ -293,7 +418,6 @@ namespace AlmondHousing.Gui
                                 }
                             }
                         }
-                        // 后台异步抓取价格数据
                         System.Threading.Tasks.Task.Run(() => Util.UniversalisClient.FetchPricesAsync(missingIds, worldId));
                     }
                     else
@@ -321,7 +445,6 @@ namespace AlmondHousing.Gui
                 foreach (var mat in materials.Values.OrderByDescending(m => Math.Max(0, m.NeededCount - m.OwnedCount)))
                 {
                     int missing = Math.Max(0, mat.NeededCount - mat.OwnedCount);
-                    
                     bool isTradable = itemSheet.HasRow(mat.ItemId) && itemSheet.GetRow(mat.ItemId).ItemSearchCategory.RowId != 0;
                     
                     ImGui.TableNextRow();
@@ -369,6 +492,33 @@ namespace AlmondHousing.Gui
                 ImGui.Dummy(new Vector2(0, 5));
                 ImGui.TextColored(ACCENT_COLOR, $"{Lang.GetText("Total Estimated Budget:")} {totalBudget:N0} Gil");
             }
+        }
+
+        private void ExecuteDyeSync()
+        {
+            int successCount = 0;
+            int failCount = 0;
+            var allItems = Plugin.InteriorItemList.Concat(Plugin.ExteriorItemList).ToList();
+            
+            foreach (var item in allItems)
+            {
+                if (item.Stain != 0 && item.ItemStruct != IntPtr.Zero)
+                {
+                    unsafe
+                    {
+                        // 💡 修复：使用 HousingGameObject 并且检查 color
+                        var itemStruct = (HousingGameObject*)item.ItemStruct;
+                        if (itemStruct->color != item.Stain)
+                        {
+                            if (Util.DyeManager.DyePlacedFurniture(item, item.Stain))
+                                successCount++;
+                            else
+                                failCount++;
+                        }
+                    }
+                }
+            }
+            Log(string.Format(Lang.GetText("Dye Sync Complete: {0} success, {1} failed."), successCount, failCount));
         }
 
         private void DrawLayoutFileTab()
@@ -730,8 +880,11 @@ namespace AlmondHousing.Gui
                 var playerPos = DalamudApi.ObjectTable.LocalPlayer.Position;
                 var housingItem = itemList[i];
                 if (housingItem.ItemStruct == IntPtr.Zero) continue;
-                var itemStruct = (HousingItemStruct*)housingItem.ItemStruct;
-                var itemPos = new Vector3(itemStruct->Position.X, itemStruct->Position.Y, itemStruct->Position.Z);
+                
+                var itemStruct = (HousingGameObject*)housingItem.ItemStruct; 
+                // 💡 修复：直接读取 X, Y, Z 属性，而不是从 Position 读取
+                var itemPos = new Vector3(itemStruct->X, itemStruct->Y, itemStruct->Z);
+                
                 if (Config.HiddenScreenItemHistory.IndexOf(i) >= 0) continue;
                 if (Config.DrawDistance > 0 && (playerPos - itemPos).Length() > Config.DrawDistance) continue;
                 if (DalamudApi.GameGui.WorldToScreen(itemPos, out var screenCoords))
@@ -773,6 +926,7 @@ namespace AlmondHousing.Gui
                 }
                 else 
                 {
+                    // 💡 修复3：直接使用 InventoryScanner
                     int owned = InventoryScanner.GetOwnedCount(itemRow.RowId);
                     results[uniqueKey] = (itemRow.RowId, itemRow.Name.ToString(), 1, owned, dyeName);
                 }

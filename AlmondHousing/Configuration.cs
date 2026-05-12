@@ -21,6 +21,9 @@ namespace AlmondHousing
         public bool GroundFloor = true;
         public bool UpperFloor = true;
 
+        public bool EnableDyeSyncPlaced { get; set; } = true;
+        public bool EnableDyeOnPlacement { get; set; } = true;
+
         public int LoadInterval = 400;
         public bool ApplyLayout = true;
 

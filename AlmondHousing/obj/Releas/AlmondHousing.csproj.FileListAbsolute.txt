@@ -1,0 +1,6 @@
+D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Releas\AlmondHousing.csproj.AssemblyReference.cache
+D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Releas\AlmondHousing.GeneratedMSBuildEditorConfig.editorconfig
+D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Releas\AlmondHousing.AssemblyInfoInputs.cache
+D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Releas\AlmondHousing.AssemblyInfo.cs
+D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Releas\AlmondHousing.csproj.CoreCompileInputs.cache
+D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Releas\AlmondHousing.sourcelink.json

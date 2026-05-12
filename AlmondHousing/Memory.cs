@@ -17,6 +17,10 @@ namespace AlmondHousing
         public static GetInventoryContainerDelegate GetInventoryContainer;
         public delegate InventoryContainer* GetInventoryContainerDelegate(IntPtr inventoryManager, InventoryType inventoryType);
 
+        // 🎨 新增：底层原生家具染色委托
+        public delegate void ColorItemDelegate(IntPtr housingModule, IntPtr item, byte stainId);
+        public ColorItemDelegate ColorItem;
+
         // Pointers to modify assembly to enable place anywhere.
         public IntPtr placeAnywhere;
         public IntPtr wallAnywhere;
@@ -36,6 +40,17 @@ namespace AlmondHousing
 
                 var getInventoryContainerPtr = DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 40 38 78 18");
                 GetInventoryContainer = Marshal.GetDelegateForFunctionPointer<GetInventoryContainerDelegate>(getInventoryContainerPtr);
+
+                // 🎨 新增：扫描并绑定游戏原生的家具染色函数
+                try 
+                {
+                    var colorItemPtr = DalamudApi.SigScanner.ScanText("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 8B FA 48 8B D9 0F B6 F0");
+                    ColorItem = Marshal.GetDelegateForFunctionPointer<ColorItemDelegate>(colorItemPtr);
+                }
+                catch (Exception ex)
+                {
+                    DalamudApi.PluginLog.Warning(ex, "未能找到家具染色函数的特征码，染色功能可能受限。");
+                }
 
             }
             catch (Exception e)
@@ -373,6 +388,23 @@ namespace AlmondHousing
                 DalamudApi.PluginLog.Error(ex, "Error occured while writing rotation!");
             }
         }
+
+        // ==========================================
+        // 🎨 新增：合法的原生染色封装方法
+        // ==========================================
+        public unsafe void ColorFurniture(IntPtr itemPtr, byte stainId)
+        {
+            // 确保指针和委托都不为空
+            if (itemPtr == IntPtr.Zero || housingModulePtr == IntPtr.Zero || ColorItem == null) 
+            {
+                DalamudApi.PluginLog.Warning("无法调用游戏原生染色函数：指针为空或特征码未找到。");
+                return;
+            }
+
+            // 直接呼叫 FFXIV 底层的原生染色函数！
+            ColorItem(housingModulePtr, itemPtr, stainId);
+        }
+
         private static void WriteProtectedBytes(IntPtr addr, byte[] b)
         {
         if (addr == IntPtr.Zero) return;
@@ -409,12 +441,6 @@ namespace AlmondHousing
         WriteProtectedBytes(wallAnywhere, bstate);
         WriteProtectedBytes(wallmountAnywhere, bstate);
 
-        // Which bytes to write.
-        // byte[] showcaseBytes = state ? [0x90, 0x90, 0x90, 0x90, 0x90, 0x90] : [0x88, 0x87, 0x98, 0x02, 0x00, 0x00];
-
-        // // Write bytes for showcase anywhere (nop or original bytes).
-        // WriteProtectedBytes(showcaseAnywhereRotate, showcaseBytes);
-        // WriteProtectedBytes(showcaseAnywherePlace, showcaseBytes);
         }
         #region Kernel32
 
