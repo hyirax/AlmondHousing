@@ -75,7 +75,6 @@ namespace AlmondHousing.Gui
             maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Fixtures")).X);
             maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Layout & Export")).X);
             maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Settings")).X);
-            // 🚀 新增 Material Audit 的宽度计算
             maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Material Audit")).X);
             maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(authorText).X);
 
@@ -87,7 +86,7 @@ namespace AlmondHousing.Gui
                 DrawSidebarItem(FontAwesomeIcon.Home, Lang.GetText("Home"), 0);
                 DrawSidebarItem(FontAwesomeIcon.Chair, Lang.GetText("Interior Furniture"), 1); 
                 DrawSidebarItem(FontAwesomeIcon.PaintRoller, Lang.GetText("Fixtures"), 2);               
-                DrawSidebarItem(FontAwesomeIcon.ClipboardList, Lang.GetText("Material Audit"), 5); // 🚀 槽位5：材料盘点
+                DrawSidebarItem(FontAwesomeIcon.ClipboardList, Lang.GetText("Material Audit"), 5);
                 DrawSidebarItem(FontAwesomeIcon.FileExport, Lang.GetText("Layout & Export"), 3);        
                 DrawSidebarItem(FontAwesomeIcon.Cog, Lang.GetText("Settings"), 4);               
 
@@ -111,7 +110,7 @@ namespace AlmondHousing.Gui
                     case 2: DrawFixtureTab(); break;
                     case 3: DrawLayoutFileTab(); break;
                     case 4: DrawSettingsTab(); break;
-                    case 5: DrawMaterialTab(); break; // 🚀 渲染新 Tab
+                    case 5: DrawMaterialTab(); break;
                 }
             }
             ImGui.EndChild();
@@ -250,33 +249,83 @@ namespace AlmondHousing.Gui
         }
 
         // ==========================================
-        // 🚀 新功能：材料盘点界面 (Material Audit)
+        // 🚀 核心功能：材料盘点界面 + 实时预算系统
         // ==========================================
         private void DrawMaterialTab()
         {
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Inventory Material Audit"));
             ImGui.Separator();
             ImGui.TextDisabled(Lang.GetText("Automatically scans Bag and Saddlebags."));
-            ImGui.Dummy(new Vector2(0, 10));
+            ImGui.Dummy(new Vector2(0, 5));
 
             var materials = AggregateItems(Dalamud.Game.ClientLanguage.English);
-            
-            if (ImGui.BeginTable("MaterialTable", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY))
+            var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
+
+            // --- 🚀 预算查价按钮区 ---
+            if (Util.UniversalisClient.IsFetching)
+            {
+                ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), Lang.GetText("Fetching market prices from Universalis..."));
+            }
+            else
+            {
+                if (ImGui.Button(Lang.GetText("Calculate Budget"), new Vector2(200, 30)))
+                {
+                    uint worldId = 0;
+                    // 💡 修复：CurrentWorld 返回 RowRef<World>，需使用 RowId 获取值
+                    if (DalamudApi.ObjectTable.Length > 0)
+                    {
+                        var pc = DalamudApi.ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
+                        if (pc != null) worldId = pc.CurrentWorld.RowId;
+                    }
+
+                    if (worldId != 0)
+                    {
+                        var missingIds = new List<uint>();
+                        foreach (var mat in materials.Values)
+                        {
+                            int missing = Math.Max(0, mat.NeededCount - mat.OwnedCount);
+                            if (missing > 0 && itemSheet.HasRow(mat.ItemId))
+                            {
+                                var row = itemSheet.GetRow(mat.ItemId);
+                                if (row.ItemSearchCategory.RowId != 0)
+                                {
+                                    missingIds.Add(mat.ItemId);
+                                }
+                            }
+                        }
+                        // 后台异步抓取价格数据
+                        System.Threading.Tasks.Task.Run(() => Util.UniversalisClient.FetchPricesAsync(missingIds, worldId));
+                    }
+                    else
+                    {
+                        LogError(Lang.GetText("Cannot determine your current server."));
+                    }
+                }
+            }
+            ImGui.Dummy(new Vector2(0, 5));
+
+            // --- 🚀 材料数据表格 ---
+            long totalBudget = 0;
+
+            if (ImGui.BeginTable("MaterialTable", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
             {
                 ImGui.TableSetupColumn(Lang.GetText("Item"), ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn(Lang.GetText("Needed"), ImGuiTableColumnFlags.WidthFixed, 60f);
-                ImGui.TableSetupColumn(Lang.GetText("Owned"), ImGuiTableColumnFlags.WidthFixed, 60f);
-                ImGui.TableSetupColumn(Lang.GetText("Missing"), ImGuiTableColumnFlags.WidthFixed, 60f);
-                ImGui.TableSetupColumn(Lang.GetText("Dye"), ImGuiTableColumnFlags.WidthFixed, 100f);
+                ImGui.TableSetupColumn(Lang.GetText("Needed"), ImGuiTableColumnFlags.WidthFixed, 50f);
+                ImGui.TableSetupColumn(Lang.GetText("Owned"), ImGuiTableColumnFlags.WidthFixed, 50f);
+                ImGui.TableSetupColumn(Lang.GetText("Missing"), ImGuiTableColumnFlags.WidthFixed, 50f);
+                ImGui.TableSetupColumn(Lang.GetText("Dye"), ImGuiTableColumnFlags.WidthFixed, 80f);
+                ImGui.TableSetupColumn(Lang.GetText("Unit Price"), ImGuiTableColumnFlags.WidthFixed, 70f);
+                ImGui.TableSetupColumn(Lang.GetText("Subtotal"), ImGuiTableColumnFlags.WidthFixed, 80f);
                 ImGui.TableHeadersRow();
-
-                var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
 
                 foreach (var mat in materials.Values.OrderByDescending(m => Math.Max(0, m.NeededCount - m.OwnedCount)))
                 {
                     int missing = Math.Max(0, mat.NeededCount - mat.OwnedCount);
                     
+                    bool isTradable = itemSheet.HasRow(mat.ItemId) && itemSheet.GetRow(mat.ItemId).ItemSearchCategory.RowId != 0;
+                    
                     ImGui.TableNextRow();
+                    
                     ImGui.TableNextColumn();
                     if (itemSheet.HasRow(mat.ItemId)) { DrawIcon(itemSheet.GetRow(mat.ItemId).Icon, new Vector2(20)); ImGui.SameLine(); }
                     ImGui.Text(mat.Name);
@@ -285,8 +334,40 @@ namespace AlmondHousing.Gui
                     ImGui.TableNextColumn(); ImGui.TextColored(mat.OwnedCount >= mat.NeededCount ? new Vector4(0.4f, 1f, 0.4f, 1f) : new Vector4(1f, 0.4f, 0.4f, 1f), $"{mat.OwnedCount}");
                     ImGui.TableNextColumn(); ImGui.TextColored(missing > 0 ? new Vector4(1f, 0.8f, 0.2f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f), missing > 0 ? $"{missing}" : "OK");
                     ImGui.TableNextColumn(); ImGui.Text(mat.Dye == "" ? "-" : mat.Dye);
+
+                    // 💰 单价显示
+                    ImGui.TableNextColumn();
+                    int minPrice = 0;
+                    bool hasPriceData = Util.UniversalisClient.PriceCache.TryGetValue(mat.ItemId, out minPrice);
+
+                    if (missing == 0) {
+                        ImGui.TextDisabled("-");
+                    } else if (!isTradable) {
+                        ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), Lang.GetText("Untradable"));
+                    } else if (hasPriceData) {
+                        if (minPrice > 0) ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.8f, 1f), $"{minPrice:N0}");
+                        else ImGui.TextDisabled(Lang.GetText("Out of Stock"));
+                    } else {
+                        ImGui.TextDisabled("?");
+                    }
+
+                    // 💰 小计显示
+                    ImGui.TableNextColumn();
+                    if (missing == 0 || !isTradable || !hasPriceData || minPrice <= 0) {
+                        ImGui.TextDisabled("-");
+                    } else {
+                        long cost = (long)minPrice * missing;
+                        totalBudget += cost;
+                        ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1f), $"{cost:N0}");
+                    }
                 }
                 ImGui.EndTable();
+            }
+
+            if (totalBudget > 0)
+            {
+                ImGui.Dummy(new Vector2(0, 5));
+                ImGui.TextColored(ACCENT_COLOR, $"{Lang.GetText("Total Estimated Budget:")} {totalBudget:N0} Gil");
             }
         }
 
@@ -297,12 +378,10 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 10));
 
-            // --- 第一组：保存功能 ---
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Save Layout"));
             if (!Config.SaveLocation.IsNullOrEmpty())
             {
                 ImGui.TextWrapped($"{Lang.GetText("Current Path:")} {Config.SaveLocation}");
-                
                 string txtSave = Lang.GetText("Save");
                 float bwSave = Math.Max(120f, ImGui.CalcTextSize(txtSave).X + 40f);
                 if (ImGui.Button(txtSave, new Vector2(bwSave, 30))) SaveLayoutToFile();
@@ -317,7 +396,6 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 10));
 
-            // --- 第二组：读取与应用功能 ---
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Apply & Load Layout"));
 
             string btnApplyCurrent = Lang.GetText("Apply Current");
@@ -325,12 +403,7 @@ namespace AlmondHousing.Gui
             string btnLoadCurrent = Lang.GetText("Load Current");
             string btnLoadFile = Lang.GetText("Load from File");
 
-            float bw1 = ImGui.CalcTextSize(btnApplyCurrent).X;
-            float bw2 = ImGui.CalcTextSize(btnApplyFile).X;
-            float bw3 = ImGui.CalcTextSize(btnLoadCurrent).X;
-            float bw4 = ImGui.CalcTextSize(btnLoadFile).X;
-            float buttonWidth = Math.Max(Math.Max(bw1, bw2), Math.Max(bw3, bw4)) + 40f; 
-            buttonWidth = Math.Max(160f, buttonWidth); 
+            float buttonWidth = 160f; 
 
             void DrawHelpText(string text)
             {
@@ -344,40 +417,24 @@ namespace AlmondHousing.Gui
 
             if (!Config.SaveLocation.IsNullOrEmpty())
             {
-                if (ImGui.Button(btnApplyCurrent, new Vector2(buttonWidth, 30))) 
-                { 
-                    CreateAutoBackup(); 
-                    LoadLayoutFromFile(true); 
-                }
+                if (ImGui.Button(btnApplyCurrent, new Vector2(buttonWidth, 30))) { CreateAutoBackup(); LoadLayoutFromFile(true); }
                 DrawHelpText(Lang.GetText("Read from current path and place immediately"));
             }
 
-            if (ImGui.Button(btnApplyFile, new Vector2(buttonWidth, 30))) 
-            { 
-                ShowLoadDialog(true); 
-            }
+            if (ImGui.Button(btnApplyFile, new Vector2(buttonWidth, 30))) { ShowLoadDialog(true); }
             DrawHelpText(Lang.GetText("Select a file and start placing immediately"));
-
-            ImGui.Dummy(new Vector2(0, 5));
 
             if (!Config.SaveLocation.IsNullOrEmpty())
             {
-                if (ImGui.Button(btnLoadCurrent, new Vector2(buttonWidth, 30))) 
-                { 
-                    LoadLayoutFromFile(false); 
-                }
+                if (ImGui.Button(btnLoadCurrent, new Vector2(buttonWidth, 30))) { LoadLayoutFromFile(false); }
                 DrawHelpText(Lang.GetText("Update list only, do not move furniture"));
             }
 
-            if (ImGui.Button(btnLoadFile, new Vector2(buttonWidth, 30))) 
-            { 
-                ShowLoadDialog(false); 
-            }
+            if (ImGui.Button(btnLoadFile, new Vector2(buttonWidth, 30))) { ShowLoadDialog(false); }
             DrawHelpText(Lang.GetText("Select file and update list, do not move"));
 
             ImGui.Dummy(new Vector2(0, 20));
             
-            // --- 第三组：购物清单导出 ---
             DrawInlineIcon(FontAwesomeIcon.ShoppingCart); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Export Shopping List"));
             ImGui.Separator();
@@ -679,7 +736,6 @@ namespace AlmondHousing.Gui
                 if (Config.DrawDistance > 0 && (playerPos - itemPos).Length() > Config.DrawDistance) continue;
                 if (DalamudApi.GameGui.WorldToScreen(itemPos, out var screenCoords))
                 {
-                    ImGui.PushID("HousingItemWindow" + i);
                     ImGui.SetNextWindowPos(new Vector2(screenCoords.X, screenCoords.Y));
                     ImGui.SetNextWindowBgAlpha(0.8f);
                     if (ImGui.Begin("HousingItem" + i, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav))
@@ -692,12 +748,10 @@ namespace AlmondHousing.Gui
                         }
                         ImGui.End();
                     }
-                    ImGui.PopID();
                 }
             }
         }
 
-        // 🚀 修改数据聚合逻辑：调用库存引擎查询玩家背包/仓库数据
         private Dictionary<string, (uint ItemId, string Name, int NeededCount, int OwnedCount, string Dye)> AggregateItems(Dalamud.Game.ClientLanguage targetLang)
         {
             var results = new Dictionary<string, (uint ItemId, string Name, int NeededCount, int OwnedCount, string Dye)>();
@@ -719,7 +773,6 @@ namespace AlmondHousing.Gui
                 }
                 else 
                 {
-                    // 🔍 调用全背包扫描引擎！
                     int owned = InventoryScanner.GetOwnedCount(itemRow.RowId);
                     results[uniqueKey] = (itemRow.RowId, itemRow.Name.ToString(), 1, owned, dyeName);
                 }
@@ -727,11 +780,9 @@ namespace AlmondHousing.Gui
             return results;
         }
 
-        // 🚀 修改导出逻辑：只导出“还缺的部分”
         private void ExportToTeamcraft(Dalamud.Game.ClientLanguage targetLang)
         {
             var materials = AggregateItems(targetLang);
-            
             string exportText = materials.Values
                 .Select(m => {
                     int missing = Math.Max(0, m.NeededCount - m.OwnedCount);
@@ -739,29 +790,17 @@ namespace AlmondHousing.Gui
                 })
                 .Aggregate("", (c, s) => c + s);
 
-            if (string.IsNullOrWhiteSpace(exportText))
-            {
-                Log(Lang.GetText("You already own all required items!"));
-            }
-            else
-            {
-                ImGui.SetClipboardText(exportText); 
-                Log(Lang.GetText("List copied to clipboard! Paste it into Teamcraft."));
-            }
+            if (string.IsNullOrWhiteSpace(exportText)) Log(Lang.GetText("You already own all required items!"));
+            else { ImGui.SetClipboardText(exportText); Log(Lang.GetText("List copied to clipboard! Paste it into Teamcraft.")); }
         }
 
-        // 🚀 修改导出逻辑：附带拥有和缺失详情
         private void ExportToCSV(Dalamud.Game.ClientLanguage targetLang)
         {
             var materials = AggregateItems(targetLang);
             if (materials.Count == 0) return;
-            
             string header = $"{Lang.GetText("Item ID")},{Lang.GetText("Item Name")},{Lang.GetText("Needed")},{Lang.GetText("Owned")},{Lang.GetText("Missing")},{Lang.GetText("Dye/Stain")}\n";
-            string body = materials.Values.Aggregate("", (c, m) => 
-                c + $"{m.ItemId},{m.Name},{m.NeededCount},{m.OwnedCount},{Math.Max(0, m.NeededCount-m.OwnedCount)},{(m.Dye == "" ? Lang.GetText("None") : m.Dye)}\n");
-            
-            ImGui.SetClipboardText(header + body);
-            Log(Lang.GetText("CSV copied to clipboard! Paste it into Excel."));
+            string body = materials.Values.Aggregate("", (c, m) => c + $"{m.ItemId},{m.Name},{m.NeededCount},{m.OwnedCount},{Math.Max(0, m.NeededCount-m.OwnedCount)},{(m.Dye == "" ? Lang.GetText("None") : m.Dye)}\n");
+            ImGui.SetClipboardText(header + body); Log(Lang.GetText("CSV copied to clipboard! Paste it into Excel."));
         }
 
         #endregion
