@@ -27,6 +27,9 @@ namespace AlmondHousing
         public Configuration Config { get; private set; }
 
         public static List<HousingItem> ItemsToPlace = new List<HousingItem>();
+        
+        // 🚀【新增】用于进度条：记录总共需要放置多少个家具
+        public static int TotalItemsToPlace = 0; 
 
         private delegate bool UpdateLayoutDelegate(IntPtr a1);
 
@@ -394,7 +397,9 @@ namespace AlmondHousing
             }
 
             ItemsToPlace.AddRange(placedLast);
-
+            
+            // 🚀【新增】在这里记录需要放置的家具总数，给界面的进度条提供数据支持
+            TotalItemsToPlace = ItemsToPlace.Count;
 
             RecursivelyPlaceItems();
         }

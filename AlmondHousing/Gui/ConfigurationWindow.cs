@@ -3,6 +3,7 @@ using Dalamud.Utility;
 using Dalamud.Bindings.ImGui;
 using Lumina.Excel.Sheets;
 using AlmondHousing.Objects;
+using AlmondHousing.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,6 +23,9 @@ namespace AlmondHousing.Gui
 
         public bool CanUpload { get; set; }
         public bool CanImport { get; set; }
+
+        private bool showOnlyMisplaced = false;
+        private bool showOnlyMissing = false;
 
         private string CustomTag = string.Empty;
         private readonly Dictionary<uint, uint> iconToFurniture = new() { };
@@ -151,6 +155,9 @@ namespace AlmondHousing.Gui
             ImGui.SetCursorPos(new Vector2(startPos.X, startPos.Y + height + 4));
         }
 
+        // ==========================================
+        // 💡 图标绘制专属函数 (解决乱码、等号的核心)
+        // ==========================================
         private void DrawInlineIcon(FontAwesomeIcon icon)
         {
             ImGui.PushFont(UiBuilder.IconFont);
@@ -158,20 +165,31 @@ namespace AlmondHousing.Gui
             ImGui.PopFont();
         }
 
+        private void DrawInlineIconColored(FontAwesomeIcon icon, Vector4 color)
+        {
+            ImGui.PushFont(UiBuilder.IconFont);
+            ImGui.TextColored(color, icon.ToIconString());
+            ImGui.PopFont();
+        }
+
         #region 各选项卡内容渲染
 
         private void DrawHomeTab()
         {
+            DrawInlineIconColored(FontAwesomeIcon.Leaf, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Welcome to AlmondHousing!"));
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 10));
 
             ImGui.BeginChild("HomeInfo", new Vector2(0, 0), false);
             {
+                // 💡 加入大量说明区的图标
+                DrawInlineIconColored(FontAwesomeIcon.InfoCircle, ACCENT_COLOR); ImGui.SameLine();
                 ImGui.TextColored(ACCENT_COLOR, Lang.GetText("About this Plugin"));
                 ImGui.TextWrapped(Lang.GetText("HomeDesc1"));
                 ImGui.Dummy(new Vector2(0, 10));
 
+                DrawInlineIconColored(FontAwesomeIcon.Star, ACCENT_COLOR); ImGui.SameLine();
                 ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Core Features"));
                 ImGui.BulletText(Lang.GetText("Feat1"));
                 ImGui.BulletText(Lang.GetText("Feat2"));
@@ -179,6 +197,7 @@ namespace AlmondHousing.Gui
                 ImGui.BulletText(Lang.GetText("Feat4"));
                 ImGui.Dummy(new Vector2(0, 10));
                 
+                DrawInlineIconColored(FontAwesomeIcon.Heart, ACCENT_COLOR); ImGui.SameLine();
                 ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Credits & Acknowledgements"));
                 ImGui.TextWrapped(Lang.GetText("CreditDesc"));
                 ImGui.Dummy(new Vector2(0, 5));
@@ -190,6 +209,7 @@ namespace AlmondHousing.Gui
                 ImGui.Unindent(10f);
                 ImGui.Dummy(new Vector2(0, 15));
 
+                DrawInlineIconColored(FontAwesomeIcon.Ban, new Vector4(1.0f, 0.4f, 0.4f, 1.0f)); ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.4f, 0.4f, 1.0f)); 
                 ImGui.TextUnformatted(Lang.GetText("Strict Anti-Resell Warning"));
                 ImGui.Separator();
@@ -206,6 +226,28 @@ namespace AlmondHousing.Gui
             DrawInlineIcon(FontAwesomeIcon.Search); ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##SearchBox", Lang.GetText("Search furniture name..."), ref searchQuery, 256);
+            ImGui.Dummy(new Vector2(0, 5));
+
+            // ===============================================
+            // 🚀 高级过滤拨动开关 (修复乱码版)
+            // ===============================================
+            DrawInlineIconColored(FontAwesomeIcon.Filter, ACCENT_COLOR); ImGui.SameLine();
+            ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Smart Filter:"));
+            ImGui.SameLine();
+
+            DrawInlineIcon(FontAwesomeIcon.ExclamationTriangle); ImGui.SameLine();
+            ImGui.Checkbox(Lang.GetText("Only show misplaced furniture"), ref showOnlyMisplaced);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("Check to show only items that are not in the correct position or rotation."));
+
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+
+            DrawInlineIcon(FontAwesomeIcon.ShoppingCart); ImGui.SameLine();
+            ImGui.Checkbox(Lang.GetText("Only show missing furniture"), ref showOnlyMissing);
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("Check to show only items that are missing from your inventory."));
+
+            ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 5));
 
             ImGui.PushStyleColor(ImGuiCol.Header, THEME_HEADER);
@@ -248,22 +290,22 @@ namespace AlmondHousing.Gui
             ImGui.PopStyleColor();
         }
 
-        // ==========================================
-        // 🚀 核心功能：材料盘点界面 + 实时预算系统
-        // ==========================================
         private void DrawMaterialTab()
         {
+            DrawInlineIconColored(FontAwesomeIcon.ClipboardCheck, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Inventory Material Audit"));
             ImGui.Separator();
+            
+            DrawInlineIcon(FontAwesomeIcon.InfoCircle); ImGui.SameLine();
             ImGui.TextDisabled(Lang.GetText("Automatically scans Bag and Saddlebags."));
             ImGui.Dummy(new Vector2(0, 5));
 
             var materials = AggregateItems(Dalamud.Game.ClientLanguage.English);
             var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
 
-            // --- 🚀 预算查价按钮区 ---
             if (Util.UniversalisClient.IsFetching)
             {
+                DrawInlineIconColored(FontAwesomeIcon.Spinner, new Vector4(0.4f, 0.8f, 1f, 1f)); ImGui.SameLine();
                 ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), Lang.GetText("Fetching market prices from Universalis..."));
             }
             else
@@ -271,7 +313,6 @@ namespace AlmondHousing.Gui
                 if (ImGui.Button(Lang.GetText("Calculate Budget"), new Vector2(200, 30)))
                 {
                     uint worldId = 0;
-                    // 💡 修复：CurrentWorld 返回 RowRef<World>，需使用 RowId 获取值
                     if (DalamudApi.ObjectTable.Length > 0)
                     {
                         var pc = DalamudApi.ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
@@ -287,13 +328,9 @@ namespace AlmondHousing.Gui
                             if (missing > 0 && itemSheet.HasRow(mat.ItemId))
                             {
                                 var row = itemSheet.GetRow(mat.ItemId);
-                                if (row.ItemSearchCategory.RowId != 0)
-                                {
-                                    missingIds.Add(mat.ItemId);
-                                }
+                                if (row.ItemSearchCategory.RowId != 0) missingIds.Add(mat.ItemId);
                             }
                         }
-                        // 后台异步抓取价格数据
                         System.Threading.Tasks.Task.Run(() => Util.UniversalisClient.FetchPricesAsync(missingIds, worldId));
                     }
                     else
@@ -304,7 +341,6 @@ namespace AlmondHousing.Gui
             }
             ImGui.Dummy(new Vector2(0, 5));
 
-            // --- 🚀 材料数据表格 ---
             long totalBudget = 0;
 
             if (ImGui.BeginTable("MaterialTable", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
@@ -321,10 +357,11 @@ namespace AlmondHousing.Gui
                 foreach (var mat in materials.Values.OrderByDescending(m => Math.Max(0, m.NeededCount - m.OwnedCount)))
                 {
                     int missing = Math.Max(0, mat.NeededCount - mat.OwnedCount);
-                    
                     bool isTradable = itemSheet.HasRow(mat.ItemId) && itemSheet.GetRow(mat.ItemId).ItemSearchCategory.RowId != 0;
                     
                     ImGui.TableNextRow();
+                    
+                    if (missing == 0) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.4f, 0.4f, 0.4f, 1.0f)); 
                     
                     ImGui.TableNextColumn();
                     if (itemSheet.HasRow(mat.ItemId)) { DrawIcon(itemSheet.GetRow(mat.ItemId).Icon, new Vector2(20)); ImGui.SameLine(); }
@@ -335,39 +372,47 @@ namespace AlmondHousing.Gui
                     ImGui.TableNextColumn(); ImGui.TextColored(missing > 0 ? new Vector4(1f, 0.8f, 0.2f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f), missing > 0 ? $"{missing}" : "OK");
                     ImGui.TableNextColumn(); ImGui.Text(mat.Dye == "" ? "-" : mat.Dye);
 
-                    // 💰 单价显示
                     ImGui.TableNextColumn();
                     int minPrice = 0;
                     bool hasPriceData = Util.UniversalisClient.PriceCache.TryGetValue(mat.ItemId, out minPrice);
 
-                    if (missing == 0) {
-                        ImGui.TextDisabled("-");
-                    } else if (!isTradable) {
-                        ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), Lang.GetText("Untradable"));
-                    } else if (hasPriceData) {
+                    if (missing == 0) { ImGui.TextDisabled("-"); } 
+                    else if (!isTradable) { ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), Lang.GetText("Untradable")); } 
+                    else if (hasPriceData) {
                         if (minPrice > 0) ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.8f, 1f), $"{minPrice:N0}");
                         else ImGui.TextDisabled(Lang.GetText("Out of Stock"));
-                    } else {
-                        ImGui.TextDisabled("?");
-                    }
+                    } else { ImGui.TextDisabled("?"); }
 
-                    // 💰 小计显示
                     ImGui.TableNextColumn();
-                    if (missing == 0 || !isTradable || !hasPriceData || minPrice <= 0) {
-                        ImGui.TextDisabled("-");
-                    } else {
+                    if (missing == 0 || !isTradable || !hasPriceData || minPrice <= 0) { ImGui.TextDisabled("-"); } 
+                    else {
                         long cost = (long)minPrice * missing;
                         totalBudget += cost;
                         ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1f), $"{cost:N0}");
                     }
+
+                    if (missing == 0) ImGui.PopStyleColor(); 
                 }
                 ImGui.EndTable();
             }
 
+            // ===============================================
+            // 🚀 财务总预算高光面板 (修复图标版)
+            // ===============================================
             if (totalBudget > 0)
             {
-                ImGui.Dummy(new Vector2(0, 5));
-                ImGui.TextColored(ACCENT_COLOR, $"{Lang.GetText("Total Estimated Budget:")} {totalBudget:N0} Gil");
+                ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 0.5f));
+                ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 8.0f); 
+                ImGui.BeginChild("BudgetPanel", new Vector2(-1, 40), true);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4); 
+
+                DrawInlineIconColored(FontAwesomeIcon.Coins, new Vector4(1.0f, 0.84f, 0.0f, 1.0f)); ImGui.SameLine();
+                ImGui.TextColored(new Vector4(1.0f, 0.84f, 0.0f, 1.0f), $"{Lang.GetText("Total Estimated Budget:")} {totalBudget:N0} Gil");
+                
+                ImGui.EndChild();
+                ImGui.PopStyleVar();
+                ImGui.PopStyleColor();
             }
         }
 
@@ -378,6 +423,21 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 10));
 
+            // ===============================================
+            // 🚀 施工进度条 (修复乱码版)
+            // ===============================================
+            if (AlmondHousing.CurrentlyPlacingItems && AlmondHousing.TotalItemsToPlace > 0)
+            {
+                float progress = 1.0f - ((float)AlmondHousing.ItemsToPlace.Count / AlmondHousing.TotalItemsToPlace);
+                
+                DrawInlineIconColored(FontAwesomeIcon.Tools, new Vector4(0.2f, 0.8f, 1.0f, 1.0f)); ImGui.SameLine();
+                ImGui.TextColored(new Vector4(0.2f, 0.8f, 1.0f, 1.0f), Lang.GetText("Construction in progress..."));
+                
+                ImGui.ProgressBar(progress, new Vector2(-1, 24), string.Format(Lang.GetText("{0} / {1} Completed"), AlmondHousing.TotalItemsToPlace - AlmondHousing.ItemsToPlace.Count, AlmondHousing.TotalItemsToPlace));
+                ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+            }
+
+            DrawInlineIconColored(FontAwesomeIcon.Save, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Save Layout"));
             if (!Config.SaveLocation.IsNullOrEmpty())
             {
@@ -396,6 +456,7 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 10));
 
+            DrawInlineIconColored(FontAwesomeIcon.FileImport, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Apply & Load Layout"));
 
             string btnApplyCurrent = Lang.GetText("Apply Current");
@@ -408,9 +469,7 @@ namespace AlmondHousing.Gui
             void DrawHelpText(string text)
             {
                 ImGui.SameLine();
-                ImGui.PushFont(UiBuilder.IconFont);
-                ImGui.TextDisabled(FontAwesomeIcon.InfoCircle.ToIconString());
-                ImGui.PopFont();
+                DrawInlineIcon(FontAwesomeIcon.InfoCircle);
                 ImGui.SameLine();
                 ImGui.TextDisabled(text);
             }
@@ -435,7 +494,7 @@ namespace AlmondHousing.Gui
 
             ImGui.Dummy(new Vector2(0, 20));
             
-            DrawInlineIcon(FontAwesomeIcon.ShoppingCart); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.ShoppingCart, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Export Shopping List"));
             ImGui.Separator();
 
@@ -456,7 +515,7 @@ namespace AlmondHousing.Gui
 
         private void DrawSettingsTab()
         {
-            DrawInlineIcon(FontAwesomeIcon.ExclamationTriangle); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.ExclamationTriangle, new Vector4(1.0f, 0.3f, 0.3f, 1.0f)); ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 0.3f, 0.3f, 1.0f)); 
             ImGui.TextWrapped(Lang.GetText("Anti-Resell Warning"));
             ImGui.PopStyleColor(); 
@@ -673,6 +732,10 @@ namespace AlmondHousing.Gui
                     if (!isUnused) { ImGui.Text(Lang.GetText("Set Position")); ImGui.NextColumn(); }
                     ImGui.Separator();
                     foreach (var housingItem in group) {
+                        
+                        if (showOnlyMisplaced && housingItem.CorrectLocation && housingItem.CorrectRotation) continue;
+                        if (showOnlyMissing && InventoryScanner.GetOwnedCount(housingItem.ItemKey) > 0) continue;
+
                         int originalIndex = itemList.IndexOf(housingItem);
                         if (itemSheet.HasRow(housingItem.ItemKey)) { DrawIcon(itemSheet.GetRow(housingItem.ItemKey).Icon, new Vector2(20, 20)); ImGui.SameLine(); }
                         if (housingItem.ItemStruct == IntPtr.Zero) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1));
@@ -740,7 +803,29 @@ namespace AlmondHousing.Gui
                     ImGui.SetNextWindowBgAlpha(0.8f);
                     if (ImGui.Begin("HousingItem" + i, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav))
                     {
-                        ImGui.Text(housingItem.Name); ImGui.SameLine();
+                        // ===============================================
+                        // 🚀 修复版 ESP：分离图标绘制，完美解决等于号
+                        // ===============================================
+                        float distance = Vector3.Distance(playerPos, itemPos);
+                        Vector4 textColor;
+                        FontAwesomeIcon icon;
+
+                        if (housingItem.CorrectLocation && housingItem.CorrectRotation)
+                        {
+                            textColor = new Vector4(0.5f, 0.5f, 0.5f, 0.8f); 
+                            icon = FontAwesomeIcon.CheckCircle;
+                        }
+                        else
+                        {
+                            textColor = new Vector4(1.0f, 0.65f, 0.0f, 1.0f); 
+                            icon = FontAwesomeIcon.Crosshairs;
+                        }
+
+                        DrawInlineIconColored(icon, textColor);
+                        ImGui.SameLine();
+                        ImGui.TextColored(textColor, $"{housingItem.Name} [{distance:F1}m]");
+                        
+                        ImGui.SameLine();
                         if (ImGui.Button(Lang.GetText("Set") + "##ScreenItem" + i.ToString()))
                         {
                             if (!Memory.Instance.CanEditItem()) continue;

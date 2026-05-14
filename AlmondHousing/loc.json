@@ -135,7 +135,14 @@
     "Subtotal": "小计",
     "Untradable": "不可交易",
     "Out of Stock": "暂无售卖",
-    "Total Estimated Budget:": "当前图纸预估总开销："
+    "Total Estimated Budget:": "当前图纸预估总开销：",
+    "Smart Filter:": "智能过滤：",
+    "Only show misplaced furniture": "仅显示位置偏移家具",
+    "Check to show only items that are not in the correct position or rotation.": "勾选后，列表只会显示位置或角度还没摆好的家具。",
+    "Only show missing furniture": "仅显示库存缺失家具",
+    "Check to show only items that are missing from your inventory.": "勾选后，列表只会显示你背包里没有、需要去买的家具。",
+    "Construction in progress...": "施工队正在火热布置中...",
+    "{0} / {1} Completed": "{0} / {1} 完工"
   },
   "zh_TW": {
     "Home": "首頁",
@@ -273,7 +280,14 @@
     "Subtotal": "小計",
     "Untradable": "不可交易",
     "Out of Stock": "暫無售賣",
-    "Total Estimated Budget:": "目前圖紙預估總開銷："
+    "Total Estimated Budget:": "目前圖紙預估總開銷：",
+    "Smart Filter:": "智能過濾：",
+    "Only show misplaced furniture": "僅顯示位置偏移家具",
+    "Check to show only items that are not in the correct position or rotation.": "勾選後，列表只會顯示位置或角度還沒擺好的家具。",
+    "Only show missing furniture": "僅顯示庫存缺失家具",
+    "Check to show only items that are missing from your inventory.": "勾選後，列表只會顯示你背包裡沒有、需要去買的家具。",
+    "Construction in progress...": "施工隊正在火熱佈置中...",
+    "{0} / {1} Completed": "{0} / {1} 完工"
   },
   "en": {
     "Home": "Home",
@@ -411,7 +425,14 @@
     "Subtotal": "Subtotal",
     "Untradable": "Untradable",
     "Out of Stock": "Out of Stock",
-    "Total Estimated Budget:": "Total Estimated Budget:"
+    "Total Estimated Budget:": "Total Estimated Budget:",
+    "Smart Filter:": "Smart Filter:",
+    "Only show misplaced furniture": "Only show misplaced furniture",
+    "Check to show only items that are not in the correct position or rotation.": "Check to show only items that are not in the correct position or rotation.",
+    "Only show missing furniture": "Only show missing furniture",
+    "Check to show only items that are missing from your inventory.": "Check to show only items that are missing from your inventory.",
+    "Construction in progress...": "Construction in progress...",
+    "{0} / {1} Completed": "{0} / {1} Completed"
   },
   "ja": {
     "Home": "ホーム",
@@ -469,7 +490,7 @@
     "Select file and update list, do not move": "ファイルを選択してリストのみを更新し、家具は移動しません",
     "Apply Layout": "レイアウトを適用",
     "Placement Interval (ms)": "設置間隔 (ミリ秒)",
-    "Time interval between furniture placements when applying a layout. If this is too low (e.g. 200 ms), some placements may be skipped over.": "レイアウト適用時の家具設置間隔。低すぎる（例：200ミリ秒）と、一部の家具がスキップされる可能性があります。",
+    "Time interval between furniture placements when applying a layout. If this is too low (e.g. 200ミリ秒), some placements may be skipped over.": "レイアウト適用時の家具設置間隔。低すぎる（例：200ミリ秒）と、一部の家具がスキップされる可能性があります。",
     "Selected Floors": "対象階",
     "Basement": "地下",
     "Ground Floor": "1階",
@@ -549,7 +570,14 @@
     "Subtotal": "小計",
     "Untradable": "取引不可",
     "Out of Stock": "在庫なし",
-    "Total Estimated Budget:": "総予算の推定額："
+    "Total Estimated Budget:": "総予算の推定額：",
+    "Smart Filter:": "スマートフィルター：",
+    "Only show misplaced furniture": "配置ズレの家具のみ表示",
+    "Check to show only items that are not in the correct position or rotation.": "チェックすると、位置や角度が正しくない家具のみを表示します。",
+    "Only show missing furniture": "不足している家具のみ表示",
+    "Check to show only items that are missing from your inventory.": "チェックすると、所持品にない購入が必要な家具のみを表示します。",
+    "Construction in progress...": "配置作業中...",
+    "{0} / {1} Completed": "{0} / {1} 完了"
   },
   "ko": {
     "Home": "홈",
@@ -603,7 +631,7 @@
     "Load from File": "파일에서 불러오기",
     "Read from current path and place immediately": "현재 경로에서 읽고 즉시 배치합니다",
     "Select a file and start placing immediately": "파일을 선택하고 즉시 배치를 시작합니다",
-    "Update list only, do not move furniture": "목록만 업데이트하고 가구는 이동하지 않습니다",
+    "Update list only, do not move 가구": "목록만 업데이트하고 가구는 이동하지 않습니다",
     "Select file and update list, do not move": "파일을 선택하여 목록만 업데이트하고 가구는 이동하지 않습니다",
     "Apply Layout": "레이아웃 적용",
     "Placement Interval (ms)": "배치 간격 (밀리초)",
@@ -630,7 +658,7 @@
     "Finished applying layout": "레이아웃 적용 완료!",
     "Loaded {0} furniture items": "{0}개의 가구를 성공적으로 불러왔습니다",
     "Scheduling next item placement, {0} remains": "다음 아이템 배치 중, {0}개 남음...",
-    "{0} is 이미 올바른 위치에 있습니다": "{0}은(는) 이미 올바른 위치에 있습니다",
+    "{0} is already correctly placed": "{0}은(는) 이미 올바른 위치에 있습니다",
     "Placing {0}": "배치 중: {0}",
     "Applying layout with interval of {0}ms": "{0}ms 간격으로 배치를 시작합니다",
     "Error occured while writing position! Item Was null": "좌표를 쓰는 중 오류 발생! 아이템 데이터가 없습니다",
@@ -687,7 +715,14 @@
     "Subtotal": "소계",
     "Untradable": "거래 불가",
     "Out of Stock": "재고 없음",
-    "Total Estimated Budget:": "총 예상 예산:"
+    "Total Estimated Budget:": "총 예상 예산:",
+    "Smart Filter:": "스마트 필터:",
+    "Only show misplaced furniture": "위치가 어긋난 가구만 표시",
+    "Check to show only items that are not in the correct position or rotation.": "체크하면 위치나 각도가 잘못된 가구만 표시합니다.",
+    "Only show missing furniture": "부족한 가구만 표시",
+    "Check to show only items that are missing from your inventory.": "체크하면 소지품에 없어 구매해야 하는 가구만 표시합니다.",
+    "Construction in progress...": "배치 작업 중...",
+    "{0} / {1} Completed": "{0} / {1} 완료"
   },
   "de": {
     "Home": "Startseite",
@@ -825,7 +860,14 @@
     "Subtotal": "Zwischensumme",
     "Untradable": "Nicht handelbar",
     "Out of Stock": "Nicht auf Lager",
-    "Total Estimated Budget:": "Geschätztes Gesamtbudget:"
+    "Total Estimated Budget:": "Geschätztes Gesamtbudget:",
+    "Smart Filter:": "Smart-Filter:",
+    "Only show misplaced furniture": "Nur falsch platzierte Möbel anzeigen",
+    "Check to show only items that are not in the correct position or rotation.": "Aktivieren, um nur Möbel anzuzeigen, deren Position oder Rotation falsch ist.",
+    "Only show missing furniture": "Nur fehlende Möbel anzeigen",
+    "Check to show only items that are missing from your inventory.": "Aktivieren, um nur Möbel anzuzeigen, die in Ihrem Inventar fehlen.",
+    "Construction in progress...": "Platzierung im Gange...",
+    "{0} / {1} Completed": "{0} / {1} Abgeschlossen"
   },
   "fr": {
     "Home": "Accueil",
@@ -963,6 +1005,13 @@
     "Subtotal": "Sous-total",
     "Untradable": "Non échangeable",
     "Out of Stock": "Rupture de stock",
-    "Total Estimated Budget:": "Budget total estimé :"
+    "Total Estimated Budget:": "Budget total estimé :",
+    "Smart Filter:": "Filtre intelligent :",
+    "Only show misplaced furniture": "Afficher uniquement les meubles mal placés",
+    "Check to show only items that are not in the correct position or rotation.": "Cochez pour afficher uniquement les meubles dont la position ou la rotation est incorrecte.",
+    "Only show missing furniture": "Afficher uniquement les meubles manquants",
+    "Check to show only items that are missing from your inventory.": "Cochez pour afficher uniquement les meubles manquants dans votre inventaire.",
+    "Construction in progress...": "Placement en cours...",
+    "{0} / {1} Completed": "{0} / {1} Terminé"
   }
 }
