@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "zZJjpXyqPfA=",
+  "dgSpecHash": "WG9qtmBURKc=",
   "success": true,
-  "projectFilePath": "D:\\Backup\\Documents\\GitHub\\AlmondHousing\\AlmondHousing\\AlmondHousing.csproj",
+  "projectFilePath": "D:\\Backup\\Documents\\GitHub\\AlmondHousing拆分重构\\AlmondHousing\\AlmondHousing.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Administrator\\.nuget\\packages\\dalamudpackager\\15.0.0\\dalamudpackager.15.0.0.nupkg.sha512",
     "C:\\Users\\Administrator\\.nuget\\packages\\dotnet.reproduciblebuilds\\2.0.2\\dotnet.reproduciblebuilds.2.0.2.nupkg.sha512",

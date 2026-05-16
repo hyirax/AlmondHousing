@@ -16,7 +16,8 @@ using Dalamud.Interface.Windowing;
 
 namespace AlmondHousing.Gui
 {
-    public class ConfigurationWindow : Window
+    // 🚀 partial 关键字让它与 Materials.cs 和 EasterEgg.cs 完美合体
+    public partial class ConfigurationWindow : Window
     {
         private AlmondHousing Plugin;
         public Configuration Config => Plugin.Config;
@@ -41,6 +42,8 @@ namespace AlmondHousing.Gui
         private string searchQuery = string.Empty;
 
         private int selectedTab = 0;
+        
+        private Dictionary<int, float> _sidebarAnimStates = new Dictionary<int, float>();
 
         public ConfigurationWindow(AlmondHousing plugin) : base("AlmondHousing", ImGuiWindowFlags.NoScrollWithMouse)
         {
@@ -55,18 +58,39 @@ namespace AlmondHousing.Gui
 
         public override void PreDraw()
         {
-            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, THEME_BASE);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 12.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 6.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.PopupRounding, 8.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 8.0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 10)); 
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(8, 6));    
+
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.08f, 0.08f, 0.09f, 0.98f)); 
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.05f, 0.05f, 0.06f, 1.0f));   
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.12f, 0.12f, 0.14f, 1.0f)); 
+            
+            ImGui.PushStyleColor(ImGuiCol.Button, THEME_BASE);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, THEME_HOVER);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, THEME_ACTIVE);
+            
+            ImGui.PushStyleColor(ImGuiCol.ScrollbarBg, new Vector4(0.05f, 0.05f, 0.05f, 0.5f));
+            ImGui.PushStyleColor(ImGuiCol.ScrollbarGrab, THEME_HOVER);
+            ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabHovered, ACCENT_COLOR);
+
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, ACCENT_COLOR); 
         }
 
         public override void PostDraw()
         {
-            ImGui.PopStyleColor(3);
+            ImGui.PopStyleVar(6);
+            ImGui.PopStyleColor(10);
         }
 
         public override void Draw()
         {
+            // 🚀 暗中监听魂斗罗秘籍 (实现在 ConfigurationWindow.EasterEgg.cs)
+            ListenForCheatCode();
+
             string version = typeof(AlmondHousing).Assembly.GetName().Version?.ToString();
             if (string.IsNullOrEmpty(version)) version = "7.5.1.0";
             if (version.EndsWith(".0")) version = version.Substring(0, version.Length - 2); 
@@ -114,7 +138,7 @@ namespace AlmondHousing.Gui
                     case 2: DrawFixtureTab(); break;
                     case 3: DrawLayoutFileTab(); break;
                     case 4: DrawSettingsTab(); break;
-                    case 5: DrawMaterialTab(); break;
+                    case 5: DrawMaterialTab(); break; // 实现在 ConfigurationWindow.Materials.cs
                 }
             }
             ImGui.EndChild();
@@ -124,40 +148,69 @@ namespace AlmondHousing.Gui
 
         private void DrawSidebarItem(FontAwesomeIcon icon, string label, int index)
         {
-            bool isSelected = selectedTab == index;
-            float height = 36f;
-            Vector2 startPos = ImGui.GetCursorPos();
+            if (!_sidebarAnimStates.ContainsKey(index)) _sidebarAnimStates[index] = 0f;
 
+            float height = 38f;
+            Vector2 startPos = ImGui.GetCursorPos(); 
+            Vector2 screenPos = ImGui.GetCursorScreenPos(); 
+            var drawList = ImGui.GetWindowDrawList();
+
+            bool isSelected = selectedTab == index;
+            
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0,0,0,0));
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0,0,0,0));
             if (ImGui.Selectable($"##{index}_{label}", isSelected, ImGuiSelectableFlags.None, new Vector2(0, height)))
             {
                 selectedTab = index;
             }
+            ImGui.PopStyleColor(2);
 
-            if (isSelected) 
+            bool isHovered = ImGui.IsItemHovered();
+
+            float targetState = isSelected ? 1f : (isHovered ? 0.3f : 0f);
+            float deltaTime = ImGui.GetIO().DeltaTime;
+            _sidebarAnimStates[index] += (targetState - _sidebarAnimStates[index]) * (deltaTime * 15.0f);
+            float progress = _sidebarAnimStates[index];
+
+            Vector4 baseColor = new Vector4(0.55f, 0.55f, 0.55f, 1f); 
+            Vector4 activeColor = ACCENT_COLOR;                       
+            
+            Vector4 currentColor = new Vector4(
+                baseColor.X + (activeColor.X - baseColor.X) * progress,
+                baseColor.Y + (activeColor.Y - baseColor.Y) * progress,
+                baseColor.Z + (activeColor.Z - baseColor.Z) * progress,
+                1f
+            );
+
+            float currentWidth = ImGui.GetWindowWidth();
+
+            if (progress > 0.01f)
             {
-                var min = ImGui.GetItemRectMin();
-                var max = ImGui.GetItemRectMax();
-                ImGui.GetWindowDrawList().AddLine(new Vector2(min.X + 2, min.Y + 4), new Vector2(min.X + 2, max.Y - 4), ImGui.ColorConvertFloat4ToU32(ACCENT_COLOR), 4.0f);
+                Vector4 bgColor = new Vector4(ACCENT_COLOR.X, ACCENT_COLOR.Y, ACCENT_COLOR.Z, progress * 0.15f);
+                drawList.AddRectFilled(screenPos, screenPos + new Vector2(currentWidth, height), ImGui.ColorConvertFloat4ToU32(bgColor), 6.0f);
             }
 
-            ImGui.SetCursorPos(new Vector2(startPos.X + 10, startPos.Y + (height - ImGui.GetTextLineHeight()) / 2));
+            if (progress > 0.01f)
+            {
+                float lineH = height * progress * 0.6f; 
+                float lineY = screenPos.Y + (height - lineH) / 2;
+                drawList.AddLine(new Vector2(screenPos.X + 2, lineY), new Vector2(screenPos.X + 2, lineY + lineH), ImGui.ColorConvertFloat4ToU32(ACCENT_COLOR), 4.0f);
+            }
+
+            float xOffset = 12f + (progress * 6f);
+            
+            string iconStr = icon.ToIconString();
             ImGui.PushFont(UiBuilder.IconFont);
-            if (isSelected) ImGui.PushStyleColor(ImGuiCol.Text, ACCENT_COLOR);
-            ImGui.Text(icon.ToIconString());
-            if (isSelected) ImGui.PopStyleColor();
+            Vector2 iconSize = ImGui.CalcTextSize(iconStr);
+            drawList.AddText(new Vector2(screenPos.X + xOffset, screenPos.Y + (height - iconSize.Y) / 2), ImGui.ColorConvertFloat4ToU32(currentColor), iconStr);
             ImGui.PopFont();
 
-            if (isSelected) ImGui.PushStyleColor(ImGuiCol.Text, ACCENT_COLOR);
-            ImGui.SetCursorPos(new Vector2(startPos.X + 38, startPos.Y + (height - ImGui.GetTextLineHeight()) / 2));
-            ImGui.Text(label);
-            if (isSelected) ImGui.PopStyleColor();
+            Vector2 textSize = ImGui.CalcTextSize(label);
+            drawList.AddText(new Vector2(screenPos.X + xOffset + iconSize.X + 8f, screenPos.Y + (height - textSize.Y) / 2), ImGui.ColorConvertFloat4ToU32(currentColor), label);
 
-            ImGui.SetCursorPos(new Vector2(startPos.X, startPos.Y + height + 4));
+            ImGui.SetCursorPos(new Vector2(startPos.X, startPos.Y + height + 2));
         }
 
-        // ==========================================
-        // 💡 图标绘制专属函数 (解决乱码、等号的核心)
-        // ==========================================
         private void DrawInlineIcon(FontAwesomeIcon icon)
         {
             ImGui.PushFont(UiBuilder.IconFont);
@@ -172,8 +225,6 @@ namespace AlmondHousing.Gui
             ImGui.PopFont();
         }
 
-        #region 各选项卡内容渲染
-
         private void DrawHomeTab()
         {
             DrawInlineIconColored(FontAwesomeIcon.Leaf, ACCENT_COLOR); ImGui.SameLine();
@@ -183,7 +234,6 @@ namespace AlmondHousing.Gui
 
             ImGui.BeginChild("HomeInfo", new Vector2(0, 0), false);
             {
-                // 💡 加入大量说明区的图标
                 DrawInlineIconColored(FontAwesomeIcon.InfoCircle, ACCENT_COLOR); ImGui.SameLine();
                 ImGui.TextColored(ACCENT_COLOR, Lang.GetText("About this Plugin"));
                 ImGui.TextWrapped(Lang.GetText("HomeDesc1"));
@@ -223,19 +273,16 @@ namespace AlmondHousing.Gui
 
         private void DrawFurnitureTab()
         {
-            DrawInlineIcon(FontAwesomeIcon.Search); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.Search, ACCENT_COLOR); ImGui.SameLine();
             ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##SearchBox", Lang.GetText("Search furniture name..."), ref searchQuery, 256);
             ImGui.Dummy(new Vector2(0, 5));
 
-            // ===============================================
-            // 🚀 高级过滤拨动开关 (修复乱码版)
-            // ===============================================
             DrawInlineIconColored(FontAwesomeIcon.Filter, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Smart Filter:"));
             ImGui.SameLine();
 
-            DrawInlineIcon(FontAwesomeIcon.ExclamationTriangle); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.ExclamationTriangle, ACCENT_COLOR); ImGui.SameLine();
             ImGui.Checkbox(Lang.GetText("Only show misplaced furniture"), ref showOnlyMisplaced);
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("Check to show only items that are not in the correct position or rotation."));
 
@@ -243,7 +290,7 @@ namespace AlmondHousing.Gui
             ImGui.Spacing();
             ImGui.SameLine();
 
-            DrawInlineIcon(FontAwesomeIcon.ShoppingCart); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.ShoppingCart, ACCENT_COLOR); ImGui.SameLine();
             ImGui.Checkbox(Lang.GetText("Only show missing furniture"), ref showOnlyMissing);
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("Check to show only items that are missing from your inventory."));
 
@@ -290,167 +337,53 @@ namespace AlmondHousing.Gui
             ImGui.PopStyleColor();
         }
 
-        private void DrawMaterialTab()
-        {
-            DrawInlineIconColored(FontAwesomeIcon.ClipboardCheck, ACCENT_COLOR); ImGui.SameLine();
-            ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Inventory Material Audit"));
-            ImGui.Separator();
-            
-            DrawInlineIcon(FontAwesomeIcon.InfoCircle); ImGui.SameLine();
-            ImGui.TextDisabled(Lang.GetText("Automatically scans Bag and Saddlebags."));
-            ImGui.Dummy(new Vector2(0, 5));
-
-            var materials = AggregateItems(Dalamud.Game.ClientLanguage.English);
-            var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>();
-
-            if (Util.UniversalisClient.IsFetching)
-            {
-                DrawInlineIconColored(FontAwesomeIcon.Spinner, new Vector4(0.4f, 0.8f, 1f, 1f)); ImGui.SameLine();
-                ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), Lang.GetText("Fetching market prices from Universalis..."));
-            }
-            else
-            {
-                if (ImGui.Button(Lang.GetText("Calculate Budget"), new Vector2(200, 30)))
-                {
-                    uint worldId = 0;
-                    if (DalamudApi.ObjectTable.Length > 0)
-                    {
-                        var pc = DalamudApi.ObjectTable[0] as Dalamud.Game.ClientState.Objects.SubKinds.IPlayerCharacter;
-                        if (pc != null) worldId = pc.CurrentWorld.RowId;
-                    }
-
-                    if (worldId != 0)
-                    {
-                        var missingIds = new List<uint>();
-                        foreach (var mat in materials.Values)
-                        {
-                            int missing = Math.Max(0, mat.NeededCount - mat.OwnedCount);
-                            if (missing > 0 && itemSheet.HasRow(mat.ItemId))
-                            {
-                                var row = itemSheet.GetRow(mat.ItemId);
-                                if (row.ItemSearchCategory.RowId != 0) missingIds.Add(mat.ItemId);
-                            }
-                        }
-                        System.Threading.Tasks.Task.Run(() => Util.UniversalisClient.FetchPricesAsync(missingIds, worldId));
-                    }
-                    else
-                    {
-                        LogError(Lang.GetText("Cannot determine your current server."));
-                    }
-                }
-            }
-            ImGui.Dummy(new Vector2(0, 5));
-
-            long totalBudget = 0;
-
-            if (ImGui.BeginTable("MaterialTable", 7, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Resizable))
-            {
-                ImGui.TableSetupColumn(Lang.GetText("Item"), ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn(Lang.GetText("Needed"), ImGuiTableColumnFlags.WidthFixed, 50f);
-                ImGui.TableSetupColumn(Lang.GetText("Owned"), ImGuiTableColumnFlags.WidthFixed, 50f);
-                ImGui.TableSetupColumn(Lang.GetText("Missing"), ImGuiTableColumnFlags.WidthFixed, 50f);
-                ImGui.TableSetupColumn(Lang.GetText("Dye"), ImGuiTableColumnFlags.WidthFixed, 80f);
-                ImGui.TableSetupColumn(Lang.GetText("Unit Price"), ImGuiTableColumnFlags.WidthFixed, 70f);
-                ImGui.TableSetupColumn(Lang.GetText("Subtotal"), ImGuiTableColumnFlags.WidthFixed, 80f);
-                ImGui.TableHeadersRow();
-
-                foreach (var mat in materials.Values.OrderByDescending(m => Math.Max(0, m.NeededCount - m.OwnedCount)))
-                {
-                    int missing = Math.Max(0, mat.NeededCount - mat.OwnedCount);
-                    bool isTradable = itemSheet.HasRow(mat.ItemId) && itemSheet.GetRow(mat.ItemId).ItemSearchCategory.RowId != 0;
-                    
-                    ImGui.TableNextRow();
-                    
-                    if (missing == 0) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.4f, 0.4f, 0.4f, 1.0f)); 
-                    
-                    ImGui.TableNextColumn();
-                    if (itemSheet.HasRow(mat.ItemId)) { DrawIcon(itemSheet.GetRow(mat.ItemId).Icon, new Vector2(20)); ImGui.SameLine(); }
-                    ImGui.Text(mat.Name);
-                    
-                    ImGui.TableNextColumn(); ImGui.Text($"{mat.NeededCount}");
-                    ImGui.TableNextColumn(); ImGui.TextColored(mat.OwnedCount >= mat.NeededCount ? new Vector4(0.4f, 1f, 0.4f, 1f) : new Vector4(1f, 0.4f, 0.4f, 1f), $"{mat.OwnedCount}");
-                    ImGui.TableNextColumn(); ImGui.TextColored(missing > 0 ? new Vector4(1f, 0.8f, 0.2f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f), missing > 0 ? $"{missing}" : "OK");
-                    ImGui.TableNextColumn(); ImGui.Text(mat.Dye == "" ? "-" : mat.Dye);
-
-                    ImGui.TableNextColumn();
-                    int minPrice = 0;
-                    bool hasPriceData = Util.UniversalisClient.PriceCache.TryGetValue(mat.ItemId, out minPrice);
-
-                    if (missing == 0) { ImGui.TextDisabled("-"); } 
-                    else if (!isTradable) { ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), Lang.GetText("Untradable")); } 
-                    else if (hasPriceData) {
-                        if (minPrice > 0) ImGui.TextColored(new Vector4(0.8f, 0.8f, 0.8f, 1f), $"{minPrice:N0}");
-                        else ImGui.TextDisabled(Lang.GetText("Out of Stock"));
-                    } else { ImGui.TextDisabled("?"); }
-
-                    ImGui.TableNextColumn();
-                    if (missing == 0 || !isTradable || !hasPriceData || minPrice <= 0) { ImGui.TextDisabled("-"); } 
-                    else {
-                        long cost = (long)minPrice * missing;
-                        totalBudget += cost;
-                        ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1f), $"{cost:N0}");
-                    }
-
-                    if (missing == 0) ImGui.PopStyleColor(); 
-                }
-                ImGui.EndTable();
-            }
-
-            // ===============================================
-            // 🚀 财务总预算高光面板 (修复图标版)
-            // ===============================================
-            if (totalBudget > 0)
-            {
-                ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 0.5f));
-                ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 8.0f); 
-                ImGui.BeginChild("BudgetPanel", new Vector2(-1, 40), true);
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4); 
-
-                DrawInlineIconColored(FontAwesomeIcon.Coins, new Vector4(1.0f, 0.84f, 0.0f, 1.0f)); ImGui.SameLine();
-                ImGui.TextColored(new Vector4(1.0f, 0.84f, 0.0f, 1.0f), $"{Lang.GetText("Total Estimated Budget:")} {totalBudget:N0} Gil");
-                
-                ImGui.EndChild();
-                ImGui.PopStyleVar();
-                ImGui.PopStyleColor();
-            }
-        }
-
         private void DrawLayoutFileTab()
         {
-            DrawInlineIcon(FontAwesomeIcon.FolderOpen); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.FolderOpen, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Layout & Export"));
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 10));
 
-            // ===============================================
-            // 🚀 施工进度条 (修复乱码版)
-            // ===============================================
-            if (AlmondHousing.CurrentlyPlacingItems && AlmondHousing.TotalItemsToPlace > 0)
+            if (AlmondHousing.Session.IsActive && AlmondHousing.Session.TotalCount > 0)
             {
-                float progress = 1.0f - ((float)AlmondHousing.ItemsToPlace.Count / AlmondHousing.TotalItemsToPlace);
+                float progress = 1.0f - ((float)AlmondHousing.Session.PendingItems.Count / AlmondHousing.Session.TotalCount);
                 
                 DrawInlineIconColored(FontAwesomeIcon.Tools, new Vector4(0.2f, 0.8f, 1.0f, 1.0f)); ImGui.SameLine();
                 ImGui.TextColored(new Vector4(0.2f, 0.8f, 1.0f, 1.0f), Lang.GetText("Construction in progress..."));
                 
-                ImGui.ProgressBar(progress, new Vector2(-1, 24), string.Format(Lang.GetText("{0} / {1} Completed"), AlmondHousing.TotalItemsToPlace - AlmondHousing.ItemsToPlace.Count, AlmondHousing.TotalItemsToPlace));
+                ImGui.ProgressBar(progress, new Vector2(-1, 24), string.Format(Lang.GetText("{0} / {1} Completed"), AlmondHousing.Session.TotalCount - AlmondHousing.Session.PendingItems.Count, AlmondHousing.Session.TotalCount));
                 ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
             }
 
             DrawInlineIconColored(FontAwesomeIcon.Save, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Save Layout"));
-            if (!Config.SaveLocation.IsNullOrEmpty())
+
+            // ==========================================
+            // 🚀【权限限制区】检测是否处于布置模式（证明是否拥有该房屋权限）
+            // ==========================================
+            bool hasPermission = Memory.Instance != null && Memory.Instance.IsHousingMode();
+
+            if (hasPermission)
             {
-                ImGui.TextWrapped($"{Lang.GetText("Current Path:")} {Config.SaveLocation}");
-                string txtSave = Lang.GetText("Save");
-                float bwSave = Math.Max(120f, ImGui.CalcTextSize(txtSave).X + 40f);
-                if (ImGui.Button(txtSave, new Vector2(bwSave, 30))) SaveLayoutToFile();
-                ImGui.SameLine();
+                if (!Config.SaveLocation.IsNullOrEmpty())
+                {
+                    ImGui.TextWrapped($"{Lang.GetText("Current Path:")} {Config.SaveLocation}");
+                    
+                    if (CustomUI.AnimatedButton("btn_save", Lang.GetText("Save"), new Vector2(180, 36), FontAwesomeIcon.Save))
+                        SaveLayoutToFile();
+                    ImGui.SameLine();
+                }
+                
+                if (CustomUI.AnimatedButton("btn_save_as", Lang.GetText("Save As"), new Vector2(180, 36), FontAwesomeIcon.FolderOpen))
+                    ShowSaveDialog();
             }
-            
-            string txtSaveAs = Lang.GetText("Save As");
-            float bwSaveAs = Math.Max(120f, ImGui.CalcTextSize(txtSaveAs).X + 40f);
-            if (ImGui.Button(txtSaveAs, new Vector2(bwSaveAs, 30))) ShowSaveDialog();
+            else
+            {
+                // 🔒 如果没权限，就画一把灰色的锁，并调用 7 国语言翻译！
+                ImGui.Dummy(new Vector2(0, 5));
+                DrawInlineIconColored(FontAwesomeIcon.Lock, new Vector4(0.6f, 0.6f, 0.6f, 1.0f)); ImGui.SameLine();
+                ImGui.TextDisabled(Lang.GetText("LockMsg"));
+            }
 
             ImGui.Dummy(new Vector2(0, 10));
             ImGui.Separator();
@@ -459,37 +392,32 @@ namespace AlmondHousing.Gui
             DrawInlineIconColored(FontAwesomeIcon.FileImport, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Apply & Load Layout"));
 
-            string btnApplyCurrent = Lang.GetText("Apply Current");
-            string btnApplyFile = Lang.GetText("Apply from File");
-            string btnLoadCurrent = Lang.GetText("Load Current");
-            string btnLoadFile = Lang.GetText("Load from File");
-
-            float buttonWidth = 160f; 
+            float buttonWidth = 200f; 
 
             void DrawHelpText(string text)
             {
-                ImGui.SameLine();
-                DrawInlineIcon(FontAwesomeIcon.InfoCircle);
+                ImGui.SameLine(0, 15);
+                DrawInlineIconColored(FontAwesomeIcon.InfoCircle, ACCENT_COLOR);
                 ImGui.SameLine();
                 ImGui.TextDisabled(text);
             }
 
             if (!Config.SaveLocation.IsNullOrEmpty())
             {
-                if (ImGui.Button(btnApplyCurrent, new Vector2(buttonWidth, 30))) { CreateAutoBackup(); LoadLayoutFromFile(true); }
+                if (CustomUI.AnimatedButton("btn_apply_curr", Lang.GetText("Apply Current"), new Vector2(buttonWidth, 36), FontAwesomeIcon.PlayCircle)) { CreateAutoBackup(); LoadLayoutFromFile(true); }
                 DrawHelpText(Lang.GetText("Read from current path and place immediately"));
             }
 
-            if (ImGui.Button(btnApplyFile, new Vector2(buttonWidth, 30))) { ShowLoadDialog(true); }
+            if (CustomUI.AnimatedButton("btn_apply_file", Lang.GetText("Apply from File"), new Vector2(buttonWidth, 36), FontAwesomeIcon.FileImport)) { ShowLoadDialog(true); }
             DrawHelpText(Lang.GetText("Select a file and start placing immediately"));
 
             if (!Config.SaveLocation.IsNullOrEmpty())
             {
-                if (ImGui.Button(btnLoadCurrent, new Vector2(buttonWidth, 30))) { LoadLayoutFromFile(false); }
+                if (CustomUI.AnimatedButton("btn_load_curr", Lang.GetText("Load Current"), new Vector2(buttonWidth, 36), FontAwesomeIcon.Sync)) { LoadLayoutFromFile(false); }
                 DrawHelpText(Lang.GetText("Update list only, do not move furniture"));
             }
 
-            if (ImGui.Button(btnLoadFile, new Vector2(buttonWidth, 30))) { ShowLoadDialog(false); }
+            if (CustomUI.AnimatedButton("btn_load_file", Lang.GetText("Load from File"), new Vector2(buttonWidth, 36), FontAwesomeIcon.Folder)) { ShowLoadDialog(false); }
             DrawHelpText(Lang.GetText("Select file and update list, do not move"));
 
             ImGui.Dummy(new Vector2(0, 20));
@@ -508,9 +436,43 @@ namespace AlmondHousing.Gui
                 ImGui.EndCombo();
             }
             ImGui.SameLine();
-            if (ImGui.Button(Lang.GetText("Export for Teamcraft"))) ExportToTeamcraft(currentExportLang);
+            if (CustomUI.AnimatedButton("btn_exp_tc", Lang.GetText("Export for Teamcraft"), new Vector2(220, 32), FontAwesomeIcon.Clipboard)) ExportToTeamcraft(currentExportLang);
             ImGui.SameLine();
-            if (ImGui.Button(Lang.GetText("Export to CSV"))) ExportToCSV(currentExportLang);
+            if (CustomUI.AnimatedButton("btn_exp_csv", Lang.GetText("Export to CSV"), new Vector2(180, 32), FontAwesomeIcon.FileCsv)) ExportToCSV(currentExportLang);
+
+            // ==========================================
+            // 🚨【彩蛋破锁区】全自动 7 国语言支持！
+            // ==========================================
+            if (_isDeveloperModeUnlocked)
+            {
+                ImGui.Dummy(new Vector2(0, 20));
+                ImGui.Separator();
+                ImGui.Dummy(new Vector2(0, 10));
+
+                float pulseAlpha = (float)(Math.Sin(ImGui.GetTime() * 5.0) + 1.0) / 2.0f;
+                Vector4 warningColor = new Vector4(1.0f, 0.2f, 0.2f, 0.5f + (pulseAlpha * 0.5f));
+                
+                DrawInlineIconColored(FontAwesomeIcon.UserSecret, warningColor); ImGui.SameLine();
+                ImGui.TextColored(warningColor, Lang.GetText("OverrideActivated"));
+
+                ImGui.Dummy(new Vector2(0, 5));
+                ImGui.TextDisabled(Lang.GetText("DevPrivilegesMsg"));
+
+                ImGui.Dummy(new Vector2(0, 5));
+                
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.3f, 0.1f, 0.4f, 1f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.2f, 0.7f, 1f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.7f, 0.3f, 1.0f, 1f));
+
+                if (ImGui.Button(Lang.GetText("ForceExtractSave") + " ##cheat_clone", new Vector2(-1, 40)))
+                {
+                    Plugin.GetGameLayout(); 
+                    ShowSaveDialog();       
+                    Log(Lang.GetText("DataExtractedMsg"));
+                }
+                
+                ImGui.PopStyleColor(3);
+            }
         }
 
         private void DrawSettingsTab()
@@ -521,7 +483,7 @@ namespace AlmondHousing.Gui
             ImGui.PopStyleColor(); 
             ImGui.Dummy(new Vector2(0, 10));
 
-            DrawInlineIcon(FontAwesomeIcon.Globe); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.Globe, ACCENT_COLOR); ImGui.SameLine();
             ImGui.Text(Lang.GetText("Plugin Interface Language"));
             
             string[] supportedLangNames = { "简体中文", "繁體中文", "English", "日本語", "한국어", "Deutsch", "Français" };
@@ -533,7 +495,7 @@ namespace AlmondHousing.Gui
             {
                 for (int i = 0; i < supportedLangs.Length; i++)
                 {
-                    DrawInlineIcon(FontAwesomeIcon.Globe); ImGui.SameLine();
+                    DrawInlineIconColored(FontAwesomeIcon.Globe, ACCENT_COLOR); ImGui.SameLine();
                     if (ImGui.Selectable(supportedLangNames[i], currentLangIndex == i))
                     {
                         Config.UILanguage = supportedLangs[i];
@@ -547,23 +509,23 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 5));
 
-            DrawInlineIcon(FontAwesomeIcon.CheckSquare); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.CheckSquare, ACCENT_COLOR); ImGui.SameLine();
             if (ImGui.Checkbox(Lang.GetText("Apply Layout"), ref Config.ApplyLayout)) Config.Save();
             
-            DrawInlineIcon(FontAwesomeIcon.Tag); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.Tag, ACCENT_COLOR); ImGui.SameLine();
             if (ImGui.Checkbox(Lang.GetText("Label Furniture"), ref Config.DrawScreen)) Config.Save();
             
-            DrawInlineIcon(FontAwesomeIcon.InfoCircle); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.InfoCircle, ACCENT_COLOR); ImGui.SameLine();
             if (ImGui.Checkbox(Lang.GetText("Show Tooltips"), ref Config.ShowTooltips)) Config.Save();
 
-            DrawInlineIcon(FontAwesomeIcon.Clock); ImGui.SameLine();
+            DrawInlineIconColored(FontAwesomeIcon.Clock, ACCENT_COLOR); ImGui.SameLine();
             ImGui.SetNextItemWidth(100);
             if (ImGui.InputInt(Lang.GetText("Placement Interval (ms)"), ref Config.LoadInterval)) Config.Save();
 
             if (Memory.Instance != null && Memory.Instance.GetCurrentTerritory() == Memory.HousingArea.Indoors && Memory.Instance.GetIndoorHouseSize() != "Apartment")
             {
                 ImGui.Dummy(new Vector2(0, 5));
-                DrawInlineIcon(FontAwesomeIcon.LayerGroup); ImGui.SameLine();
+                DrawInlineIconColored(FontAwesomeIcon.LayerGroup, ACCENT_COLOR); ImGui.SameLine();
                 ImGui.Text(Lang.GetText("Selected Floors"));
                 
                 if (ImGui.Checkbox(Lang.GetText("Basement"), ref Config.Basement)) Config.Save();
@@ -573,10 +535,6 @@ namespace AlmondHousing.Gui
                 if (Memory.Instance.HasUpperFloor() && ImGui.Checkbox(Lang.GetText("Upper Floor"), ref Config.UpperFloor)) Config.Save();
             }
         }
-
-        #endregion
-
-        #region 核心功能逻辑区
 
         public static void DrawIcon(ushort icon, Vector2 size)
         {
@@ -669,6 +627,8 @@ namespace AlmondHousing.Gui
                 
                 Plugin.MatchLayout(); 
                 Config.ResetRecord(); 
+
+                InvalidateMaterialCache();
                 
                 if (shouldApply) Plugin.ApplyLayout(); 
             }
@@ -803,9 +763,6 @@ namespace AlmondHousing.Gui
                     ImGui.SetNextWindowBgAlpha(0.8f);
                     if (ImGui.Begin("HousingItem" + i, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav))
                     {
-                        // ===============================================
-                        // 🚀 修复版 ESP：分离图标绘制，完美解决等于号
-                        // ===============================================
                         float distance = Vector3.Distance(playerPos, itemPos);
                         Vector4 textColor;
                         FontAwesomeIcon icon;
@@ -836,58 +793,5 @@ namespace AlmondHousing.Gui
                 }
             }
         }
-
-        private Dictionary<string, (uint ItemId, string Name, int NeededCount, int OwnedCount, string Dye)> AggregateItems(Dalamud.Game.ClientLanguage targetLang)
-        {
-            var results = new Dictionary<string, (uint ItemId, string Name, int NeededCount, int OwnedCount, string Dye)>();
-            var allItems = Plugin.InteriorItemList.Concat(Plugin.ExteriorItemList).ToList();
-            var itemSheet = DalamudApi.DataManager.GetExcelSheet<Item>(targetLang);
-            var stainSheet = DalamudApi.DataManager.GetExcelSheet<Stain>(targetLang);
-            
-            foreach (var housingItem in allItems)
-            {
-                if (!itemSheet.HasRow(housingItem.ItemKey)) continue;
-                var itemRow = itemSheet.GetRow(housingItem.ItemKey);
-                string dyeName = (housingItem.Stain != 0 && stainSheet.HasRow(housingItem.Stain)) ? stainSheet.GetRow(housingItem.Stain).Name.ToString() : "";
-                string uniqueKey = $"{itemRow.RowId}_{dyeName}";
-                
-                if (results.ContainsKey(uniqueKey)) 
-                {
-                    var cur = results[uniqueKey];
-                    results[uniqueKey] = (cur.ItemId, cur.Name, cur.NeededCount + 1, cur.OwnedCount, cur.Dye);
-                }
-                else 
-                {
-                    int owned = InventoryScanner.GetOwnedCount(itemRow.RowId);
-                    results[uniqueKey] = (itemRow.RowId, itemRow.Name.ToString(), 1, owned, dyeName);
-                }
-            }
-            return results;
-        }
-
-        private void ExportToTeamcraft(Dalamud.Game.ClientLanguage targetLang)
-        {
-            var materials = AggregateItems(targetLang);
-            string exportText = materials.Values
-                .Select(m => {
-                    int missing = Math.Max(0, m.NeededCount - m.OwnedCount);
-                    return missing > 0 ? $"{m.Name} x{missing}\n" : "";
-                })
-                .Aggregate("", (c, s) => c + s);
-
-            if (string.IsNullOrWhiteSpace(exportText)) Log(Lang.GetText("You already own all required items!"));
-            else { ImGui.SetClipboardText(exportText); Log(Lang.GetText("List copied to clipboard! Paste it into Teamcraft.")); }
-        }
-
-        private void ExportToCSV(Dalamud.Game.ClientLanguage targetLang)
-        {
-            var materials = AggregateItems(targetLang);
-            if (materials.Count == 0) return;
-            string header = $"{Lang.GetText("Item ID")},{Lang.GetText("Item Name")},{Lang.GetText("Needed")},{Lang.GetText("Owned")},{Lang.GetText("Missing")},{Lang.GetText("Dye/Stain")}\n";
-            string body = materials.Values.Aggregate("", (c, m) => c + $"{m.ItemId},{m.Name},{m.NeededCount},{m.OwnedCount},{Math.Max(0, m.NeededCount-m.OwnedCount)},{(m.Dye == "" ? Lang.GetText("None") : m.Dye)}\n");
-            ImGui.SetClipboardText(header + body); Log(Lang.GetText("CSV copied to clipboard! Paste it into Excel."));
-        }
-
-        #endregion
     }
 }

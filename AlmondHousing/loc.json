@@ -142,7 +142,12 @@
     "Only show missing furniture": "仅显示库存缺失家具",
     "Check to show only items that are missing from your inventory.": "勾选后，列表只会显示你背包里没有、需要去买的家具。",
     "Construction in progress...": "施工队正在火热布置中...",
-    "{0} / {1} Completed": "{0} / {1} 完工"
+    "{0} / {1} Completed": "{0} / {1} 完工",
+    "LockMsg": "请先在游戏中进入 [房屋设置 -> 放置家具] 模式，才能导出图纸。",
+    "OverrideActivated": ">>> 覆盖协议激活：克隆模式 <<<",
+    "DevPrivilegesMsg": "开发者特权已激活。您现在可以无视权限，强制提取当前所处房屋的全部内存数据。",
+    "ForceExtractSave": "强制提取并保存数据",
+    "DataExtractedMsg": "数据已提取，请选择保存路径..."
   },
   "zh_TW": {
     "Home": "首頁",
@@ -287,7 +292,12 @@
     "Only show missing furniture": "僅顯示庫存缺失家具",
     "Check to show only items that are missing from your inventory.": "勾選後，列表只會顯示你背包裡沒有、需要去買的家具。",
     "Construction in progress...": "施工隊正在火熱佈置中...",
-    "{0} / {1} Completed": "{0} / {1} 完工"
+    "{0} / {1} Completed": "{0} / {1} 完工",
+    "LockMsg": "請先在遊戲中進入 [房屋設定 -> 放置家具] 模式，才能匯出圖紙。",
+    "OverrideActivated": ">>> 覆蓋協議啟動：複製模式 <<<",
+    "DevPrivilegesMsg": "開發者特權已啟動。您現在可以無視權限，強制提取目前所在房屋的全部記憶體資料。",
+    "ForceExtractSave": "強制提取並儲存資料",
+    "DataExtractedMsg": "資料已提取，請選擇儲存路徑..."
   },
   "en": {
     "Home": "Home",
@@ -432,7 +442,12 @@
     "Only show missing furniture": "Only show missing furniture",
     "Check to show only items that are missing from your inventory.": "Check to show only items that are missing from your inventory.",
     "Construction in progress...": "Construction in progress...",
-    "{0} / {1} Completed": "{0} / {1} Completed"
+    "{0} / {1} Completed": "{0} / {1} Completed",
+    "LockMsg": "Please enter Housing Mode (Indoor/Outdoor Furnishings) to save layout.",
+    "OverrideActivated": ">>> OVERRIDE ACTIVATED: CLONE PROTOCOL <<<",
+    "DevPrivilegesMsg": "Developer privileges activated. You can now bypass permissions to forcibly extract layout data from the current house.",
+    "ForceExtractSave": "Force Extract & Save",
+    "DataExtractedMsg": "Data extracted! Please select a save path..."
   },
   "ja": {
     "Home": "ホーム",
@@ -577,7 +592,12 @@
     "Only show missing furniture": "不足している家具のみ表示",
     "Check to show only items that are missing from your inventory.": "チェックすると、所持品にない購入が必要な家具のみを表示します。",
     "Construction in progress...": "配置作業中...",
-    "{0} / {1} Completed": "{0} / {1} 完了"
+    "{0} / {1} Completed": "{0} / {1} 完了",
+    "LockMsg": "レイアウトを保存するには、「調度品の配置」モードに入ってください。",
+    "OverrideActivated": ">>> オーバーライド有効：クローンプロトコル <<<",
+    "DevPrivilegesMsg": "開発者権限が有効化されました。権限を無視して、現在のハウスのすべてのレイアウトデータを強制的に抽出できます。",
+    "ForceExtractSave": "強制抽出して保存",
+    "DataExtractedMsg": "データが抽出されました！保存先を選択してください..."
   },
   "ko": {
     "Home": "홈",
@@ -722,7 +742,12 @@
     "Only show missing furniture": "부족한 가구만 표시",
     "Check to show only items that are missing from your inventory.": "체크하면 소지품에 없어 구매해야 하는 가구만 표시합니다.",
     "Construction in progress...": "배치 작업 중...",
-    "{0} / {1} Completed": "{0} / {1} 완료"
+    "{0} / {1} Completed": "{0} / {1} 완료",
+    "LockMsg": "레이아웃을 저장하려면 하우징 모드(실내/야외 가구 배치)로 진입하세요.",
+    "OverrideActivated": ">>> 오버라이드 활성화: 클론 프로토콜 <<<",
+    "DevPrivilegesMsg": "개발자 권한이 활성화되었습니다. 이제 권한을 무시하고 현재 하우징의 모든 레이아웃 데이터를 강제로 추출할 수 있습니다.",
+    "ForceExtractSave": "강제 추출 및 저장",
+    "DataExtractedMsg": "데이터 추출 완료! 저장 경로를 선택하세요..."
   },
   "de": {
     "Home": "Startseite",
@@ -812,7 +837,7 @@
     "Load Error: {0}": "Ladefehler: {0}",
     "Finished exporting layout": "Layout-Export abgeschlossen!",
     "Save file not specified": "Speicherdatei nicht angegeben",
-    "Failed to decrypt layout! The file might be corrupted or tampered with.": "Entschlüsselung fehlgeschlagen! Die Datei ist möglicherweise beschädigt oder manipuliert.",
+    "Failed to decrypt layout! Die Datei ist möglicherweise beschädigt oder manipuliert.": "Entschlüsselung fehlgeschlagen! Die Datei ist möglicherweise beschädigt oder manipuliert.",
     "(Manage Furnishings -> Place Furnishing Glamours)": "(Garteneinrichtung -> Gartenprojektionen platzieren)",
     "(Housing -> Indoor/Outdoor Furnishings)": "(Unterkunft -> Innen-/Garteneinrichtung)",
     "Unable to load and apply layouts outside of Rotate Layout mode": "Layouts können außerhalb des Modus 'Drehen' nicht geladen und angewendet werden",
@@ -867,7 +892,12 @@
     "Only show missing furniture": "Nur fehlende Möbel anzeigen",
     "Check to show only items that are missing from your inventory.": "Aktivieren, um nur Möbel anzuzeigen, die in Ihrem Inventar fehlen.",
     "Construction in progress...": "Platzierung im Gange...",
-    "{0} / {1} Completed": "{0} / {1} Abgeschlossen"
+    "{0} / {1} Completed": "{0} / {1} Abgeschlossen",
+    "LockMsg": "Bitte wechseln Sie in den Unterkunfts-Modus (Innen-/Garteneinrichtung), um das Layout zu speichern.",
+    "OverrideActivated": ">>> ÜBERSCHREIBUNG AKTIVIERT: KLON-PROTOKOLL <<<",
+    "DevPrivilegesMsg": "Entwicklerrechte aktiviert. Sie können nun Berechtigungen umgehen, um alle Layout-Daten des aktuellen Hauses zwangsweise zu extrahieren.",
+    "ForceExtractSave": "Erzwingen, Extrahieren & Speichern",
+    "DataExtractedMsg": "Daten extrahiert! Bitte wählen Sie einen Speicherort..."
   },
   "fr": {
     "Home": "Accueil",
@@ -1012,6 +1042,11 @@
     "Only show missing furniture": "Afficher uniquement les meubles manquants",
     "Check to show only items that are missing from your inventory.": "Cochez pour afficher uniquement les meubles manquants dans votre inventaire.",
     "Construction in progress...": "Placement en cours...",
-    "{0} / {1} Completed": "{0} / {1} Terminé"
+    "{0} / {1} Completed": "{0} / {1} Terminé",
+    "LockMsg": "Veuillez entrer dans le mode Logement (Mobilier d'intérieur/de jardin) pour sauvegarder l'agencement.",
+    "OverrideActivated": ">>> SUBSTITUTION ACTIVÉE : PROTOCOLE DE CLONAGE <<<",
+    "DevPrivilegesMsg": "Privilèges de développeur activés. Vous pouvez désormais contourner les permissions pour extraire de force toutes les données d'agencement de la maison actuelle.",
+    "ForceExtractSave": "Forcer l'extraction et sauvegarder",
+    "DataExtractedMsg": "Données extraites ! Veuillez sélectionner un chemin de sauvegarde..."
   }
 }

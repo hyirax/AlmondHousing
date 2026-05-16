@@ -24,3 +24,29 @@ D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Release\AlmondHousing
 D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Release\AlmondHo.542989BC.Up2Date
 D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Release\AlmondHousing.dll
 D:\Backup\Documents\GitHub\AlmondHousing\AlmondHousing\obj\Release\AlmondHousing.pdb
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\bin\loc.json
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\bin\AlmondHousing.deps.json
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\bin\AlmondHousing.dll
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\bin\AlmondHousing.pdb
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.csproj.AssemblyReference.cache
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.GeneratedMSBuildEditorConfig.editorconfig
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.AssemblyInfoInputs.cache
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.AssemblyInfo.cs
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.csproj.CoreCompileInputs.cache
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.sourcelink.json
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHo.542989BC.Up2Date
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.dll
+D:\Backup\Documents\GitHub\AlmondHousing - 副本\AlmondHousing\obj\Release\AlmondHousing.pdb
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.csproj.AssemblyReference.cache
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.GeneratedMSBuildEditorConfig.editorconfig
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.AssemblyInfoInputs.cache
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.AssemblyInfo.cs
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.csproj.CoreCompileInputs.cache
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.sourcelink.json
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.dll
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHousing.pdb
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\bin\loc.json
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\bin\AlmondHousing.deps.json
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\bin\AlmondHousing.dll
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\bin\AlmondHousing.pdb
+D:\Backup\Documents\GitHub\AlmondHousing拆分重构\AlmondHousing\obj\Release\AlmondHo.542989BC.Up2Date
