@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Backup\\Documents\\GitHub\\AlmondHousing拆分重构\\AlmondHousing\\AlmondHousing.csproj": {}
+    "D:\\Backup\\Documents\\GitHub\\AlmondHousing\\almondhousing\\AlmondHousing.csproj": {}
   },
   "projects": {
-    "D:\\Backup\\Documents\\GitHub\\AlmondHousing拆分重构\\AlmondHousing\\AlmondHousing.csproj": {
+    "D:\\Backup\\Documents\\GitHub\\AlmondHousing\\almondhousing\\AlmondHousing.csproj": {
       "version": "7.5.1",
       "restore": {
-        "projectUniqueName": "D:\\Backup\\Documents\\GitHub\\AlmondHousing拆分重构\\AlmondHousing\\AlmondHousing.csproj",
+        "projectUniqueName": "D:\\Backup\\Documents\\GitHub\\AlmondHousing\\almondhousing\\AlmondHousing.csproj",
         "projectName": "AlmondHousing",
-        "projectPath": "D:\\Backup\\Documents\\GitHub\\AlmondHousing拆分重构\\AlmondHousing\\AlmondHousing.csproj",
+        "projectPath": "D:\\Backup\\Documents\\GitHub\\AlmondHousing\\almondhousing\\AlmondHousing.csproj",
         "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-        "outputPath": "D:\\Backup\\Documents\\GitHub\\AlmondHousing拆分重构\\AlmondHousing\\obj\\",
+        "outputPath": "D:\\Backup\\Documents\\GitHub\\AlmondHousing\\almondhousing\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"

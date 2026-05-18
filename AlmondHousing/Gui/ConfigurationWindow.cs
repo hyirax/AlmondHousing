@@ -16,7 +16,6 @@ using Dalamud.Interface.Windowing;
 
 namespace AlmondHousing.Gui
 {
-    // 🚀 partial 关键字让它与 Materials.cs 和 EasterEgg.cs 完美合体
     public partial class ConfigurationWindow : Window
     {
         private AlmondHousing Plugin;
@@ -44,6 +43,9 @@ namespace AlmondHousing.Gui
         private int selectedTab = 0;
         
         private Dictionary<int, float> _sidebarAnimStates = new Dictionary<int, float>();
+        private string _antiResellInput = string.Empty;
+        
+        private Dictionary<int, Vector2> _stableScreenCoords = new Dictionary<int, Vector2>();
 
         public ConfigurationWindow(AlmondHousing plugin) : base("AlmondHousing", ImGuiWindowFlags.NoScrollWithMouse)
         {
@@ -56,8 +58,39 @@ namespace AlmondHousing.Gui
             };
         }
 
+        private string GetAntiResellPhrase()
+        {
+            return Config.UILanguage switch
+            {
+                "zh" => "插件免费倒卖狗死个妈买的和卖的全是傻逼",
+                "zh_TW" => "外掛免費倒賣狗死全家買的和賣的全是傻逼",
+                "ja" => "このプラグインは無料です、転売屋は詐欺です",
+                "ko" => "이 플러그인은 무료입니다, 되팔이는 사기꾼입니다",
+                "de" => "Dieses Plugin ist kostenlos, Wiederverkäufer sind Betrüger",
+                "fr" => "Ce plugin est gratuit, les revendeurs sont des escrocs",
+                _ => "This plugin is free, resellers are scammers"
+            };
+        }
+
+        private string GetAntiResellInstruction()
+        {
+            return Config.UILanguage switch
+            {
+                "zh" => "严禁倒卖！为确认您未被倒卖狗欺骗，请【手动完整输入】以下红色口令以解锁插件：",
+                "zh_TW" => "嚴禁倒賣！為確認您未被倒賣狗欺骗，請【手動完整輸入】以下紅色口令以解鎖外掛：",
+                "ja" => "転売禁止！詐欺被害を防ぐため、以下の赤い宣言文を【手動で正確に入力】してプラグインのロックを解除してください：",
+                "ko" => "되팔이 금지! 사기 피해를 방지하려면 아래의 빨간색 문구를 【정확히 직접 입력】하여 플러그인을 잠금 해제하세요:",
+                "de" => "Verkauf verboten! Um zu bestätigen, dass Sie nicht betrogen wurden, tippen Sie den folgenden roten Satz manuell ein:",
+                "fr" => "Revente interdite ! Pour confirmer que vous n'avez pas été arnaqué, veuillez taper manuellement la phrase rouge ci-dessous :",
+                _ => "Anti-Resell Check! To confirm you weren't scammed, please type the red phrase below exactly as shown to unlock the plugin:"
+            };
+        }
+
         public override void PreDraw()
         {
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f); 
+            ImGui.PushStyleVar(ImGuiStyleVar.ChildBorderSize, 0f); 
+            ImGui.PushStyleVar(ImGuiStyleVar.PopupBorderSize, 0f); 
             ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 12.0f);
             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 6.0f);
             ImGui.PushStyleVar(ImGuiStyleVar.PopupRounding, 8.0f);
@@ -65,15 +98,30 @@ namespace AlmondHousing.Gui
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 10)); 
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(8, 6));    
 
-            ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.08f, 0.08f, 0.09f, 0.98f)); 
-            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.05f, 0.05f, 0.06f, 1.0f));   
-            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.12f, 0.12f, 0.14f, 1.0f)); 
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.05f, 0.05f, 0.05f, 0.95f)); 
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.0f, 0.0f, 0.0f, 0.0f));      
+            ImGui.PushStyleColor(ImGuiCol.PopupBg, new Vector4(0.08f, 0.08f, 0.08f, 0.98f));  
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.02f, 0.02f, 0.02f, 0.98f));  
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.08f, 0.08f, 0.08f, 0.98f)); 
+            ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(0.0f, 0.0f, 0.0f, 0.0f));       
             
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.15f, 0.15f, 0.15f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, new Vector4(0.22f, 0.22f, 0.22f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, new Vector4(0.28f, 0.28f, 0.28f, 1.0f));
+            
+            ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.18f, 0.18f, 0.18f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0.25f, 0.25f, 0.25f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0.32f, 0.32f, 0.32f, 1.0f));
+
+            ImGui.PushStyleColor(ImGuiCol.TableHeaderBg, new Vector4(0.14f, 0.14f, 0.15f, 0.9f));     
+            ImGui.PushStyleColor(ImGuiCol.TableBorderStrong, new Vector4(0.2f, 0.2f, 0.22f, 0.4f));    
+            ImGui.PushStyleColor(ImGuiCol.TableBorderLight, new Vector4(0.15f, 0.15f, 0.16f, 0.3f));   
+
             ImGui.PushStyleColor(ImGuiCol.Button, THEME_BASE);
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, THEME_HOVER);
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, THEME_ACTIVE);
             
-            ImGui.PushStyleColor(ImGuiCol.ScrollbarBg, new Vector4(0.05f, 0.05f, 0.05f, 0.5f));
+            ImGui.PushStyleColor(ImGuiCol.ScrollbarBg, new Vector4(0.02f, 0.02f, 0.02f, 0.5f));
             ImGui.PushStyleColor(ImGuiCol.ScrollbarGrab, THEME_HOVER);
             ImGui.PushStyleColor(ImGuiCol.ScrollbarGrabHovered, ACCENT_COLOR);
 
@@ -82,14 +130,104 @@ namespace AlmondHousing.Gui
 
         public override void PostDraw()
         {
-            ImGui.PopStyleVar(6);
-            ImGui.PopStyleColor(10);
+            ImGui.PopStyleVar(9); 
+            ImGui.PopStyleColor(22); 
         }
 
         public override void Draw()
         {
-            // 🚀 暗中监听魂斗罗秘籍 (实现在 ConfigurationWindow.EasterEgg.cs)
             ListenForCheatCode();
+
+            if (!Config.IsActivated)
+            {
+                ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.05f, 0.05f, 1.0f)); 
+                ImGui.BeginChild("AntiResellLock", new Vector2(0, 0), true);
+                
+                ImGui.SetCursorPosY(20);
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - 90);
+                string[] supportedLangNames = { "简体中文", "繁體中文", "English", "日本語", "한국어", "Deutsch", "Français" };
+                string[] supportedLangs = { "zh", "zh_TW", "en", "ja", "ko", "de", "fr" };
+                int currentLangIndex = Math.Max(0, Array.IndexOf(supportedLangs, Config.UILanguage));
+
+                ImGui.SetNextItemWidth(180); 
+                if (ImGui.BeginCombo("##AntiResellLang", supportedLangNames[currentLangIndex]))
+                {
+                    for (int i = 0; i < supportedLangs.Length; i++)
+                    {
+                        DrawInlineIconColored(FontAwesomeIcon.Globe, ACCENT_COLOR); ImGui.SameLine();
+                        if (ImGui.Selectable(supportedLangNames[i], currentLangIndex == i))
+                        {
+                            Config.UILanguage = supportedLangs[i];
+                            Config.Save();
+                            Lang.SetLanguage(Config.UILanguage);
+                        }
+                    }
+                    ImGui.EndCombo();
+                }
+
+                ImGui.SetCursorPosY(ImGui.GetWindowHeight() / 2 - 120);
+                
+                float pulseAlpha = (float)(Math.Sin(ImGui.GetTime() * 4.0) + 1.0) / 2.0f;
+                Vector4 warningColor = new Vector4(1.0f, 0.3f, 0.3f, 0.6f + (pulseAlpha * 0.4f));
+                
+                string titleText = Lang.GetText("AntiResellTitle");
+                float titleWidth = ImGui.CalcTextSize(titleText).X + 25; 
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - titleWidth / 2);
+                DrawInlineIconColored(FontAwesomeIcon.ShieldAlt, warningColor);
+                ImGui.SameLine();
+                ImGui.TextColored(warningColor, titleText);
+                
+                ImGui.Dummy(new Vector2(0, 15));
+                
+                string instruction = GetAntiResellInstruction();
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - ImGui.CalcTextSize(instruction).X / 2);
+                ImGui.Text(instruction);
+                
+                ImGui.Dummy(new Vector2(0, 10));
+
+                string expectedPhrase = GetAntiResellPhrase();
+                ImGui.PushFont(UiBuilder.DefaultFont); 
+                string displayPhrase = $"【 {expectedPhrase} 】";
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - ImGui.CalcTextSize(displayPhrase).X / 2);
+                ImGui.TextColored(new Vector4(1.0f, 0.4f, 0.4f, 1.0f), displayPhrase);
+                ImGui.PopFont();
+
+                ImGui.Dummy(new Vector2(0, 10));
+
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - 250);
+                ImGui.SetNextItemWidth(500);
+                ImGui.InputText("##AntiResellInput", ref _antiResellInput, 128);
+                
+                ImGui.Dummy(new Vector2(0, 15));
+                
+                string btnText = Lang.GetText("VerifyUnlockBtn");
+                float btnWidth = Math.Max(250f, ImGui.CalcTextSize(btnText).X + 60f); 
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - btnWidth / 2);
+                
+                if (CustomUI.AnimatedButton("btn_verify_unlock", btnText, new Vector2(btnWidth, 40), FontAwesomeIcon.Unlock))
+                {
+                    if (_antiResellInput.Trim() == expectedPhrase)
+                    {
+                        Config.IsActivated = true; 
+                        Config.Save();             
+                        _antiResellInput = string.Empty; 
+                    }
+                    else
+                    {
+                        Log("Phrase mismatch!");
+                    }
+                }
+
+                ImGui.Dummy(new Vector2(0, 30));
+                string helpText = Lang.GetText("AntiResellHelp");
+                ImGui.SetCursorPosX(ImGui.GetWindowWidth() / 2 - ImGui.CalcTextSize(helpText).X / 2);
+                ImGui.TextDisabled(helpText);
+
+                ImGui.EndChild();
+                ImGui.PopStyleColor();
+                
+                return; 
+            }
 
             string version = typeof(AlmondHousing).Assembly.GetName().Version?.ToString();
             if (string.IsNullOrEmpty(version)) version = "7.5.1.0";
@@ -98,18 +236,12 @@ namespace AlmondHousing.Gui
             string versionText = $" v{version}";
             string authorText = " By AlmondCookie";
 
-            float maxTextWidth = ImGui.CalcTextSize(Lang.GetText("Home")).X;
-            maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Interior Furniture")).X);
-            maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Fixtures")).X);
-            maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Layout & Export")).X);
-            maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Settings")).X);
-            maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Material Audit")).X);
-            maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(authorText).X);
+            float maxTextWidth = ImGui.CalcTextSize(Lang.GetText("Home")).X;maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Interior Furniture")).X);maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Fixtures")).X);maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Layout & Export")).X);maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Settings")).X);maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(Lang.GetText("Material Audit")).X);maxTextWidth = Math.Max(maxTextWidth, ImGui.CalcTextSize(authorText).X);
 
             float sidebarWidth = maxTextWidth + 65f; 
             if (sidebarWidth < 200f) sidebarWidth = 200f; 
 
-            ImGui.BeginChild("AlmondSidebar", new Vector2(sidebarWidth, 0), true);
+            ImGui.BeginChild("AlmondSidebar", new Vector2(sidebarWidth, 0), false);
             {
                 DrawSidebarItem(FontAwesomeIcon.Home, Lang.GetText("Home"), 0);
                 DrawSidebarItem(FontAwesomeIcon.Chair, Lang.GetText("Interior Furniture"), 1); 
@@ -138,7 +270,7 @@ namespace AlmondHousing.Gui
                     case 2: DrawFixtureTab(); break;
                     case 3: DrawLayoutFileTab(); break;
                     case 4: DrawSettingsTab(); break;
-                    case 5: DrawMaterialTab(); break; // 实现在 ConfigurationWindow.Materials.cs
+                    case 5: DrawMaterialTab(); break; 
                 }
             }
             ImGui.EndChild();
@@ -297,10 +429,6 @@ namespace AlmondHousing.Gui
             ImGui.Separator();
             ImGui.Dummy(new Vector2(0, 5));
 
-            ImGui.PushStyleColor(ImGuiCol.Header, THEME_HEADER);
-            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, THEME_HOVER);
-            ImGui.PushStyleColor(ImGuiCol.HeaderActive, THEME_ACTIVE);
-
             if (ImGui.CollapsingHeader(Lang.GetText("Interior Furniture"), ImGuiTreeNodeFlags.DefaultOpen))
             {
                 ImGui.PushID("interior");
@@ -319,13 +447,10 @@ namespace AlmondHousing.Gui
                 DrawItemList(Plugin.UnusedItemList, true);
                 ImGui.PopID();
             }
-
-            ImGui.PopStyleColor(3);
         }
 
         private void DrawFixtureTab()
         {
-            ImGui.PushStyleColor(ImGuiCol.Header, THEME_HEADER);
             if (ImGui.CollapsingHeader(Lang.GetText("Interior Fixtures"), ImGuiTreeNodeFlags.DefaultOpen))
             {
                 DrawFixtureList(Plugin.Layout.interiorFixture);
@@ -334,7 +459,6 @@ namespace AlmondHousing.Gui
             {
                 DrawFixtureList(Plugin.Layout.exteriorFixture);
             }
-            ImGui.PopStyleColor();
         }
 
         private void DrawLayoutFileTab()
@@ -358,9 +482,6 @@ namespace AlmondHousing.Gui
             DrawInlineIconColored(FontAwesomeIcon.Save, ACCENT_COLOR); ImGui.SameLine();
             ImGui.TextColored(ACCENT_COLOR, Lang.GetText("Save Layout"));
 
-            // ==========================================
-            // 🚀【权限限制区】检测是否处于布置模式（证明是否拥有该房屋权限）
-            // ==========================================
             bool hasPermission = Memory.Instance != null && Memory.Instance.IsHousingMode();
 
             if (hasPermission)
@@ -379,7 +500,6 @@ namespace AlmondHousing.Gui
             }
             else
             {
-                // 🔒 如果没权限，就画一把灰色的锁，并调用 7 国语言翻译！
                 ImGui.Dummy(new Vector2(0, 5));
                 DrawInlineIconColored(FontAwesomeIcon.Lock, new Vector4(0.6f, 0.6f, 0.6f, 1.0f)); ImGui.SameLine();
                 ImGui.TextDisabled(Lang.GetText("LockMsg"));
@@ -440,9 +560,6 @@ namespace AlmondHousing.Gui
             ImGui.SameLine();
             if (CustomUI.AnimatedButton("btn_exp_csv", Lang.GetText("Export to CSV"), new Vector2(180, 32), FontAwesomeIcon.FileCsv)) ExportToCSV(currentExportLang);
 
-            // ==========================================
-            // 🚨【彩蛋破锁区】全自动 7 国语言支持！
-            // ==========================================
             if (_isDeveloperModeUnlocked)
             {
                 ImGui.Dummy(new Vector2(0, 20));
@@ -512,6 +629,44 @@ namespace AlmondHousing.Gui
             DrawInlineIconColored(FontAwesomeIcon.CheckSquare, ACCENT_COLOR); ImGui.SameLine();
             if (ImGui.Checkbox(Lang.GetText("Apply Layout"), ref Config.ApplyLayout)) Config.Save();
             
+            // 🚀【量子物理穿透 UI 联动逻辑】(全面替换为多语言支持)
+            AlmondHousing.CheckBDTHCompatibility();
+            if (AlmondHousing.UseEmbeddedBDTH)
+            {
+                DrawInlineIconColored(FontAwesomeIcon.UnlockAlt, ACCENT_COLOR); ImGui.SameLine();
+                if (ImGui.Checkbox(Lang.GetText("EnableQuantumPlace"), ref Config.EnableQuantumPlace)) 
+                {
+                    Config.Save();
+                    Memory.Instance.SetPlaceAnywhere(Config.EnableQuantumPlace); 
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("QuantumPlaceHelp"));
+            }
+            else
+            {
+                DrawInlineIconColored(FontAwesomeIcon.Link, new Vector4(0.2f, 0.8f, 0.2f, 1.0f)); ImGui.SameLine();
+                ImGui.TextColored(new Vector4(0.2f, 0.8f, 0.2f, 1.0f), Lang.GetText("QuantumPlaceLinked"));
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("QuantumPlaceLinkedHelp"));
+            }
+
+            // 🚀 悬浮窗控制大满贯 (全部多语言化)
+            ImGui.Dummy(new Vector2(0, 5));
+            DrawInlineIconColored(FontAwesomeIcon.Crosshairs, ACCENT_COLOR); ImGui.SameLine();
+            if (ImGui.Checkbox(Lang.GetText("EnableGizmo"), ref Config.UseGizmo)) Config.Save();
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip(Lang.GetText("GizmoHelp"));
+
+            ImGui.SameLine(0, 20);
+            DrawInlineIconColored(FontAwesomeIcon.Anchor, ACCENT_COLOR); ImGui.SameLine();
+            if (ImGui.Checkbox(Lang.GetText("DragSnap"), ref Config.DoSnap)) Config.Save();
+
+            DrawInlineIconColored(FontAwesomeIcon.Pen, ACCENT_COLOR); ImGui.SameLine();
+            ImGui.SetNextItemWidth(150);
+            if (ImGui.InputFloat(Lang.GetText("DragPrecision"), ref Config.Drag, 0.01f, 0.1f, "%.3f"))
+            {
+                Config.Drag = Math.Max(0.001f, Math.Min(Config.Drag, 10f));
+                Config.Save();
+            }
+            
+            ImGui.Dummy(new Vector2(0, 5));
             DrawInlineIconColored(FontAwesomeIcon.Tag, ACCENT_COLOR); ImGui.SameLine();
             if (ImGui.Checkbox(Lang.GetText("Label Furniture"), ref Config.DrawScreen)) Config.Save();
             
@@ -698,10 +853,10 @@ namespace AlmondHousing.Gui
 
                         int originalIndex = itemList.IndexOf(housingItem);
                         if (itemSheet.HasRow(housingItem.ItemKey)) { DrawIcon(itemSheet.GetRow(housingItem.ItemKey).Icon, new Vector2(20, 20)); ImGui.SameLine(); }
-                        if (housingItem.ItemStruct == IntPtr.Zero) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1));
+                        if (housingItem.ItemStruct == nint.Zero) ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.5f, 0.5f, 0.5f, 1));
                         ImGui.Text(housingItem.Name); ImGui.NextColumn();
                         DrawRow(originalIndex, housingItem, !isUnused);
-                        if (housingItem.ItemStruct == IntPtr.Zero) ImGui.PopStyleColor();
+                        if (housingItem.ItemStruct == nint.Zero) ImGui.PopStyleColor();
                         ImGui.Separator();
                     }
                     ImGui.Columns(1); ImGui.TreePop();
@@ -736,7 +891,7 @@ namespace AlmondHousing.Gui
             }
             ImGui.NextColumn();
             if (showSetPosition) {
-                if (housingItem.ItemStruct != IntPtr.Zero) {
+                if (housingItem.ItemStruct != nint.Zero) {
                     if (ImGui.Button(Lang.GetText("Set") + "##" + i)) { Plugin.MatchLayout(); SetItemPosition(housingItem); }
                 }
                 ImGui.NextColumn();
@@ -748,19 +903,49 @@ namespace AlmondHousing.Gui
             if (!Config.DrawScreen) return;
             if (Memory.Instance == null) return;
             var itemList = Memory.Instance.GetCurrentTerritory() == Memory.HousingArea.Indoors ? Plugin.InteriorItemList : Plugin.ExteriorItemList;
+            
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0f); 
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 4.0f); 
+            
+            ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.02f, 0.02f, 0.02f, 0.92f)); 
+            ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(0.0f, 0.0f, 0.0f, 0.0f)); 
+            
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.15f, 0.15f, 0.15f, 0.6f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.3f, 0.3f, 0.3f, 0.8f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.45f, 0.45f, 0.45f, 1.0f));
+
             for (int i = 0; i < itemList.Count(); i++)
             {
                 var playerPos = DalamudApi.ObjectTable.LocalPlayer.Position;
                 var housingItem = itemList[i];
-                if (housingItem.ItemStruct == IntPtr.Zero) continue;
+                if (housingItem.ItemStruct == nint.Zero) continue;
+                
                 var itemStruct = (HousingItemStruct*)housingItem.ItemStruct;
                 var itemPos = new Vector3(itemStruct->Position.X, itemStruct->Position.Y, itemStruct->Position.Z);
+                
                 if (Config.HiddenScreenItemHistory.IndexOf(i) >= 0) continue;
                 if (Config.DrawDistance > 0 && (playerPos - itemPos).Length() > Config.DrawDistance) continue;
+                
                 if (DalamudApi.GameGui.WorldToScreen(itemPos, out var screenCoords))
                 {
-                    ImGui.SetNextWindowPos(new Vector2(screenCoords.X, screenCoords.Y));
-                    ImGui.SetNextWindowBgAlpha(0.8f);
+                    if (!_stableScreenCoords.TryGetValue(i, out var stableCoords))
+                    {
+                        stableCoords = screenCoords;
+                        _stableScreenCoords[i] = stableCoords;
+                    }
+
+                    if (Vector2.Distance(screenCoords, stableCoords) > 2.5f)
+                    {
+                        stableCoords = screenCoords;
+                        _stableScreenCoords[i] = stableCoords;
+                    }
+
+                    float snappedX = (float)Math.Floor(stableCoords.X);
+                    float snappedY = (float)Math.Floor(stableCoords.Y);
+                    
+                    ImGui.SetNextWindowPos(new Vector2(snappedX, snappedY));
+                    
                     if (ImGui.Begin("HousingItem" + i, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav))
                     {
                         float distance = Vector3.Distance(playerPos, itemPos);
@@ -780,7 +965,7 @@ namespace AlmondHousing.Gui
 
                         DrawInlineIconColored(icon, textColor);
                         ImGui.SameLine();
-                        ImGui.TextColored(textColor, $"{housingItem.Name} [{distance:F1}m]");
+                        ImGui.TextColored(textColor, $"{housingItem.Name} [{distance:F0}m]");
                         
                         ImGui.SameLine();
                         if (ImGui.Button(Lang.GetText("Set") + "##ScreenItem" + i.ToString()))
@@ -792,6 +977,9 @@ namespace AlmondHousing.Gui
                     }
                 }
             }
+
+            ImGui.PopStyleColor(5);
+            ImGui.PopStyleVar(3);
         }
     }
 }

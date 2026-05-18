@@ -7,29 +7,51 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using static AlmondHousing.Memory;
 using HousingFurniture = Lumina.Excel.Sheets.HousingFurniture;
 
 namespace AlmondHousing
 {
-    public sealed class AlmondHousing : IDalamudPlugin
+    public sealed unsafe class AlmondHousing : IDalamudPlugin
     {
         public static LanguageManager Lang { get; private set; } = new LanguageManager();
-        public static string PluginDirectory { get; private set; }
-        private IDalamudPluginInterface PluginInterface { get; init; } = null!;
-        
+        public static string PluginDirectory { get; private set; } = string.Empty;
+        private IDalamudPluginInterface PluginInterface { get; init; }
+
         public string Name => "AlmondHousing";
         public PluginUi Gui { get; private set; }
         public Configuration Config { get; private set; }
+        public static AlmondHousing Instance { get; private set; } = null!;
 
-        // 高性能状态机与队列
         public static PlacementSession Session = new PlacementSession();
 
-        private delegate bool UpdateLayoutDelegate(IntPtr a1);
-        public delegate void SelectItemDelegate(IntPtr housingStruct, IntPtr item);
-        private static HookWrapper<SelectItemDelegate> SelectItemHook;
-        public delegate void ClickItemDelegate(IntPtr housingStruct, IntPtr item);
-        private static HookWrapper<ClickItemDelegate> ClickItemHook;
+        // 🚀 控制内嵌 BDTH 全区放置的大总管开关
+        public static bool UseEmbeddedBDTH { get; set; } = true;
+
+        private delegate bool UpdateLayoutDelegate(HousingStructure* layoutWorld);
+        public delegate void SelectItemDelegate(HousingStructure* housingStruct, nint item);
+        private static HookWrapper<SelectItemDelegate> SelectItemHook = null!;
+        public delegate void ClickItemDelegate(HousingStructure* housingStruct, nint item);
+        private static HookWrapper<ClickItemDelegate> ClickItemHook = null!;
+
+        internal delegate nint GetObjectDelegate(nint objList, ushort index);
+        internal delegate nint GetActiveObjectDelegate(nint objList, uint index);
+        internal delegate ushort GetIndexDelegate(byte plotNumber, ushort inventoryIndex);
+
+        internal static HookWrapper<GetObjectDelegate> GetGameObjectHook = null!;
+        internal static HookWrapper<GetActiveObjectDelegate> GetObjectFromIndexHook = null!;
+        internal static HookWrapper<GetIndexDelegate> GetYardIndexHook = null!;
+
+        internal delegate void MaybePlaced(HousingStructure* housingPtr, nint itemPtr, long a); 
+        internal delegate void ResetItemPlacementd(HousingStructure* housingPtr, long a); 
+        internal delegate void FinalizeHousingd(HousingStructure* housingPtr, long a, nint b); 
+        internal delegate void PlaceCalld(HousingStructure* housingPtr, long a, nint b); 
+
+        internal static HookWrapper<MaybePlaced> MaybePlaceh = null!;
+        internal static HookWrapper<ResetItemPlacementd> ResetItemPlacementh = null!;
+        internal static HookWrapper<FinalizeHousingd> FinalizeHousingh = null!;
+        internal static HookWrapper<PlaceCalld> PlaceCallh = null!;
 
         public static bool ApplyChange = false;
         public static SaveLayoutManager LayoutManager = null!;
@@ -41,44 +63,74 @@ namespace AlmondHousing
         public List<HousingItem> ExteriorItemList = new List<HousingItem>();
         public List<HousingItem> UnusedItemList = new List<HousingItem>();
 
-        public void Dispose()
-        {
-            HookManager.Dispose();
-            try { Memory.Instance.SetPlaceAnywhere(false); }
-            catch (Exception ex) { DalamudApi.PluginLog.Error(ex, "Error while calling PluginMemory.Dispose()"); }
-
-            DalamudApi.CommandManager.RemoveHandler("/almond");
-            Gui?.Dispose();
-        }
-
         public AlmondHousing(IDalamudPluginInterface pi)
         {
+            Instance = this;
+            PluginInterface = pi;
             DalamudApi.Initialize(pi);
             Config = DalamudApi.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Config.Save();
 
-            Initialize();
+            InitializeHooks();
 
             DalamudApi.CommandManager.AddHandler("/almond", new CommandInfo(CommandHandler) { HelpMessage = "打开 AlmondHousing 面板。" });
             Gui = new PluginUi(this);
 
             HousingData.Init(this);
             Memory.Init();
-            Memory.Instance.SetPlaceAnywhere(true);
-            LayoutManager = new SaveLayoutManager(this, Config);
 
+            // 🚀 主动开启一次全盘动态内存幽灵扫描
+            CheckBDTHCompatibility();
+            if (UseEmbeddedBDTH && Instance.Config.EnableQuantumPlace)
+            {
+                Memory.Instance.SetPlaceAnywhere(true);
+            }
+
+            // ⚡⚡⚡ 注入高阶 3D 微调 UI ⚡⚡⚡
+            DalamudApi.PluginInterface.UiBuilder.Draw += AdvancedTuningUI.Draw;
+
+            LayoutManager = new SaveLayoutManager(this, Config);
             DalamudApi.PluginLog.Info("AlmondHousing Plugin initialized");
 
-            PluginDirectory = pi.AssemblyLocation.DirectoryName;
-            if (PluginDirectory != null)
+            PluginDirectory = pi.AssemblyLocation.DirectoryName ?? string.Empty;
+            if (!string.IsNullOrEmpty(PluginDirectory))
             {
                 Lang.LoadAllLanguages(PluginDirectory);
                 Lang.SetLanguage(Config.UILanguage);
                 DalamudApi.PluginLog.Info($"[汉化系统] 翻译官启动！当前语言设定为: {Config.UILanguage}");
             }
         }
-        
-        public void Initialize()
+
+        // 👑【动态内存扫描内核】：彻底删除对 IPluginManager 的编译期依赖，100% 防报错
+        public static void CheckBDTHCompatibility()
+        {
+            try
+            {
+                // 🛰️ 扫描当前游戏进程执行上下文里加载的所有托管程序集
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                
+                // 如果发现名叫 BDTHPlugin 的程序集存在，说明原版 BDTH 正在运行
+                bool isOriginalBDTHActive = assemblies.Any(a => a.GetName().Name == "BDTHPlugin");
+
+                if (isOriginalBDTHActive)
+                {
+                    UseEmbeddedBDTH = false;
+                    // 原版已加载，静默将让出内存修改权以防冲突
+                    try { Memory.Instance.SetPlaceAnywhere(false); } catch { }
+                }
+                else
+                {
+                    UseEmbeddedBDTH = true;
+                }
+            }
+            catch
+            {
+                // 异常保底，默认允许内嵌版运行
+                UseEmbeddedBDTH = true;
+            }
+        }
+
+        public void InitializeHooks()
         {
             SelectItemHook = HookManager.Hook<SelectItemDelegate>("48 85 D2 0F 84 ?? ?? ?? ?? 53 41 56 48 83 EC ?? 48 89 6C 24", SelectItemDetour);
             ClickItemHook = HookManager.Hook<ClickItemDelegate>("48 89 5C 24 10 48 89 74  24 18 57 48 83 EC 20 4c 8B 41 18 33 FF 0F B6 F2", ClickItemDetour);
@@ -92,46 +144,29 @@ namespace AlmondHousing
             PlaceCallh = HookManager.Hook<PlaceCalld>("40 53 48 83 Ec 20 48 8B 51 18 48 8B D9 48 85 D2 0F 84 B1 00 00 00", PlaceCall); 
         }
 
-        internal delegate ushort GetIndexDelegate(byte plotNumber, ushort inventoryIndex);
-        internal static HookWrapper<GetIndexDelegate> GetYardIndexHook;
         internal static ushort GetYardIndex(byte plotNumber, ushort inventoryIndex) => GetYardIndexHook.Original(plotNumber, inventoryIndex);
+        internal static nint GetObjectFromIndex(nint objList, uint index) => GetObjectFromIndexHook.Original(objList, index);
+        internal static nint GetGameObject(nint objList, ushort index) => GetGameObjectHook.Original(objList, index);
 
-        internal delegate IntPtr GetActiveObjectDelegate(IntPtr ObjList, uint index);
-        internal static IntPtr GetObjectFromIndex(IntPtr ObjList, uint index) => GetObjectFromIndexHook.Original(ObjList, index);
+        public static void SelectItemDetour(HousingStructure* housing, nint item) => SelectItemHook.Original(housing, item);
+        public static void SelectItem(nint item) => SelectItemDetour(Memory.Instance.HousingStructure, item);
 
-        internal delegate IntPtr GetObjectDelegate(IntPtr ObjList, ushort index);
-        internal static HookWrapper<GetObjectDelegate> GetGameObjectHook;
-        internal static HookWrapper<GetActiveObjectDelegate> GetObjectFromIndexHook;
+        public static void MaybePlacedt(HousingStructure* housingPtr, nint itemPtr, long a) => MaybePlaceh.Original(housingPtr, itemPtr, a);
+        public static void MaybePlace(HousingStructure* housingPtr, nint itemPtr, long a) => MaybePlacedt(housingPtr, itemPtr, a);
 
-        internal static IntPtr GetGameObject(IntPtr ObjList, ushort index) => GetGameObjectHook.Original(ObjList, index);
+        public static void ResetItemPlacementdt(HousingStructure* housingPtr, long a) => ResetItemPlacementh.Original(housingPtr, a);
+        public static void Hc1(HousingStructure* housingPtr, long a) => ResetItemPlacementdt(housingPtr, a);
 
-        unsafe static public void SelectItemDetour(IntPtr housing, IntPtr item) { SelectItemHook.Original(housing, item); }
-        unsafe static public void SelectItem(IntPtr item) { SelectItemDetour((IntPtr)Memory.Instance.HousingStructure, item); }
+        public static void FinalizeHousingdt(HousingStructure* housingPtr, long a, nint b) => FinalizeHousingh.Original(housingPtr, a, b);
+        public static void FinalizeHousing(HousingStructure* housingPtr, long a, nint b) => FinalizeHousingdt(housingPtr, a, b);
 
-        internal delegate void MaybePlaced(IntPtr housingPtr, IntPtr itemPtr, Int64 a); 
-        internal static HookWrapper<MaybePlaced> MaybePlaceh;
-        unsafe static public void MaybePlacedt(IntPtr housingPtr, IntPtr itemPtr, Int64 a) { MaybePlaceh.Original(housingPtr, itemPtr, a); }
-        unsafe static public void MaybePlace(IntPtr housingPtr, IntPtr itemPtr, Int64 a) { MaybePlacedt(housingPtr, itemPtr, a); }
+        public static void PlaceCalldt(HousingStructure* housingPtr, long a, nint b) => PlaceCallh.Original(housingPtr, a, b);
+        public static void PlaceCall(HousingStructure* housingPtr, long a, nint b) => PlaceCalldt(housingPtr, a, b);
 
-        internal delegate void ResetItemPlacementd(IntPtr housingPtr, Int64 a); 
-        internal static HookWrapper<ResetItemPlacementd> ResetItemPlacementh;
-        unsafe static public void ResetItemPlacementdt(IntPtr housingPtr, Int64 a) { ResetItemPlacementh.Original(housingPtr, a); }
-        unsafe static public void Hc1(IntPtr housingPtr, Int64 a) { ResetItemPlacementdt(housingPtr, a); }
+        public static void ClickItemDetour(HousingStructure* housing, nint item) => ClickItemHook.Original(Memory.Instance.HousingStructure, item);
+        public static void ClickItem(nint item) => ClickItemDetour(Memory.Instance.HousingStructure, item);
 
-        internal delegate void FinalizeHousingd(IntPtr housingPtr, Int64 a, IntPtr b); 
-        internal static HookWrapper<FinalizeHousingd> FinalizeHousingh;
-        unsafe static public void FinalizeHousingdt(IntPtr housingPtr, Int64 a, IntPtr b) { FinalizeHousingh.Original(housingPtr, a, b); }
-        unsafe static public void FinalizeHousing(IntPtr housingPtr, Int64 a, IntPtr b) { FinalizeHousingdt(housingPtr, a, b); }
-
-        internal delegate void PlaceCalld(IntPtr housingPtr, Int64 a, IntPtr b); 
-        internal static HookWrapper<PlaceCalld> PlaceCallh;
-        unsafe static public void PlaceCalldt(IntPtr housingPtr, Int64 a, IntPtr b) { PlaceCallh.Original(housingPtr, a, b); }
-        unsafe static public void PlaceCall(IntPtr housingPtr, Int64 a, IntPtr b) { PlaceCalldt(housingPtr, a, b); }
-
-        unsafe static public void ClickItemDetour(IntPtr housing, IntPtr item) { ClickItemHook.Original(housing, item); }
-        unsafe static public void ClickItem(IntPtr item) { ClickItemDetour((IntPtr)Memory.Instance.HousingStructure, item); }
-
-        public unsafe void RecursivelyPlaceItems()
+        public void RecursivelyPlaceItems()
         {
             if (!Memory.Instance.CanEditItem() || Session.PendingItems.Count == 0)
             {
@@ -146,7 +181,7 @@ namespace AlmondHousing
                 while (Session.PendingItems.Count > 0)
                 {
                     var item = Session.PendingItems.Dequeue();
-                    if (item.ItemStruct == IntPtr.Zero) continue;
+                    if (item.ItemStruct == nint.Zero) continue;
 
                     if (item.CorrectLocation && item.CorrectRotation)
                     {
@@ -166,12 +201,15 @@ namespace AlmondHousing
             Cleanup();
             void Cleanup()
             {
-                Memory.Instance.SetPlaceAnywhere(false);
+                if (UseEmbeddedBDTH && !Instance.Config.EnableQuantumPlace)
+                {
+                    Memory.Instance.SetPlaceAnywhere(false);
+                }
                 Session.IsActive = false; 
             }
         }
 
-        unsafe public static void SetItemPosition(HousingItem rowItem)
+        public static void SetItemPosition(HousingItem rowItem)
         {
             if (!Memory.Instance.CanEditItem())
             {
@@ -179,15 +217,15 @@ namespace AlmondHousing
                 return;
             }
 
-            if (rowItem.ItemStruct == IntPtr.Zero) return;
+            if (rowItem.ItemStruct == nint.Zero) return;
 
-            var MemInstance = Memory.Instance;
+            var memInstance = Memory.Instance;
             logHousingDetour = true;
             ApplyChange = true;
 
             SelectItem(rowItem.ItemStruct);
 
-            var thisItem = MemInstance.HousingStructure->ActiveItem;
+            var thisItem = memInstance.HousingStructure->ActiveItem;
             if (thisItem == null)
             {
                 LogError(Lang.GetText("Error occured while writing position! Item Was null"));
@@ -195,17 +233,24 @@ namespace AlmondHousing
             }
 
             Vector3 position = new Vector3(rowItem.X, rowItem.Y, rowItem.Z);
-            Vector3 rotation = new Vector3();
-            rotation.Y = (float)(rowItem.Rotate * 180 / Math.PI);
+            Vector3 rotation = new Vector3(0, (float)(rowItem.Rotate * 180 / Math.PI), 0);
 
-            if (MemInstance.GetCurrentTerritory() == Memory.HousingArea.Outdoors)
+            if (memInstance.GetCurrentTerritory() == Memory.HousingArea.Outdoors)
             {
                 var rotateVector = Quaternion.CreateFromAxisAngle(Vector3.UnitY, -PlotLocation.rotation);
                 position = Vector3.Transform(position, rotateVector) + PlotLocation.ToVector();
                 rotation.Y = (float)((rowItem.Rotate - PlotLocation.rotation) * 180 / Math.PI);
             }
-            MemInstance.WritePosition(position);
-            MemInstance.WriteRotation(rotation);
+            
+            // 🚀 排布之前实时雷达探针重测，决定是由内嵌解锁还是原版解锁
+            CheckBDTHCompatibility();
+            if (UseEmbeddedBDTH && Instance.Config.EnableQuantumPlace)
+            {
+                Memory.Instance.SetPlaceAnywhere(true);
+            }
+
+            memInstance.WritePosition(position);
+            memInstance.WriteRotation(rotation);
 
             ClickItem(nint.Zero);
 
@@ -251,11 +296,11 @@ namespace AlmondHousing
 
         public bool MatchItem(HousingItem item, uint itemKey)
         {
-            if (item.ItemStruct != IntPtr.Zero) return false;       
+            if (item.ItemStruct != nint.Zero) return false;       
             return item.ItemKey == itemKey && IsSelectedFloor(item.Y);
         }
 
-        public unsafe bool MatchExactItem(HousingItem item, uint itemKey, HousingGameObject obj)
+        public bool MatchExactItem(HousingItem item, uint itemKey, HousingGameObject obj)
         {
             if (!MatchItem(item, itemKey)) return false;
             if (item.Stain != obj.color) return false;
@@ -270,41 +315,41 @@ namespace AlmondHousing
             return matItemKey == item.MaterialItemKey;
         }
 
-        // 🚀【消灭魔法数字】使用 Constants 里的精度定义
-        private unsafe void BindItemToGameObject(HousingItem houseItem, HousingGameObject gameObject, Vector3 localPosition, float localRotation)
+        private void BindItemToGameObject(HousingItem houseItem, HousingGameObject gameObject, Vector3 localPosition, float localRotation)
         {
             if (houseItem == null) return;
             var locationError = houseItem.GetLocation() - localPosition;
             houseItem.CorrectLocation = locationError.LengthSquared() < Constants.Housing.LocationTolerance;
             houseItem.CorrectRotation = localRotation - houseItem.Rotate < Constants.Housing.RotationTolerance;
-            houseItem.ItemStruct = (IntPtr)gameObject.Item;
+            houseItem.ItemStruct = (nint)gameObject.Item;
         }
 
-        public unsafe void MatchLayout()
+        public void MatchLayout()
         {
             List<HousingGameObject> allObjects = null;
-            Memory Mem = Memory.Instance;
+            Memory mem = Memory.Instance;
             Quaternion rotateVector = new();
-            var currentTerritory = Mem.GetCurrentTerritory();
+            var currentTerritory = mem.GetCurrentTerritory();
 
             switch (currentTerritory)
             {
                 case HousingArea.Indoors:
-                    Mem.TryGetNameSortedHousingGameObjectList(out allObjects);
-                    InteriorItemList.ForEach(item => { item.ItemStruct = IntPtr.Zero; });
+                    mem.TryGetNameSortedHousingGameObjectList(out allObjects);
+                    InteriorItemList.ForEach(item => { item.ItemStruct = nint.Zero; });
                     break;
                 case HousingArea.Outdoors:
                     GetPlotLocation();
-                    Mem.TryGetNameSortedHousingGameObjectList(out allObjects);
-                    ExteriorItemList.ForEach(item => { item.ItemStruct = IntPtr.Zero; });
+                    mem.TryGetNameSortedHousingGameObjectList(out allObjects);
+                    ExteriorItemList.ForEach(item => { item.ItemStruct = nint.Zero; });
                     rotateVector = Quaternion.CreateFromAxisAngle(Vector3.UnitY, PlotLocation.rotation);
                     break;
                 case HousingArea.Island:
-                    Mem.TryGetIslandGameObjectList(out allObjects);
-                    ExteriorItemList.ForEach(item => { item.ItemStruct = IntPtr.Zero; });
+                    mem.TryGetIslandGameObjectList(out allObjects);
+                    ExteriorItemList.ForEach(item => { item.ItemStruct = nint.Zero; });
                     break;
             }
 
+            if (allObjects == null) return;
             List<HousingGameObject> unmatched = new List<HousingGameObject>();
 
             foreach (var gameObject in allObjects)
@@ -387,7 +432,7 @@ namespace AlmondHousing
             }
         }
 
-        public unsafe void GetPlotLocation()
+        public void GetPlotLocation()
         {
             var mgr = Memory.Instance.HousingModule->outdoorTerritory;
             var plotNumber = mgr->Plot + 1;
@@ -406,7 +451,7 @@ namespace AlmondHousing
             PlotLocation = Plots.Map[placeName][plotNumber];
         }
 
-        public unsafe void LoadExterior()
+        public void LoadExterior()
         {
             SaveLayoutManager.LoadExteriorFixtures();
 
@@ -425,7 +470,6 @@ namespace AlmondHousing
                 Item? item = furniture.Item.Value;
                 if (item == null || item.Equals(0)) continue;
 
-                // 🚀【消灭魔法数字】使用 Constants 里的标准房屋尺寸
                 var xMax = 0.0;
                 var yMax = Constants.Housing.MaxExteriorHeight;
                 var zMax = 0.0;
@@ -438,7 +482,7 @@ namespace AlmondHousing
                 }
 
                 var housingItem = new HousingItem(item.Value, gameObject);
-                housingItem.ItemStruct = (IntPtr)gameObject.Item;
+                housingItem.ItemStruct = (nint)gameObject.Item;
 
                 var location = new Vector3(housingItem.X, housingItem.Y, housingItem.Z);
                 var newLocation = Vector3.Transform(location - PlotLocation.ToVector(), rotateVector);
@@ -460,7 +504,6 @@ namespace AlmondHousing
         {
             if (Memory.Instance.GetCurrentTerritory() != Memory.HousingArea.Indoors || Memory.Instance.GetIndoorHouseSize().Equals("Apartment")) return true;
 
-            // 🚀【消灭魔法数字】使用 Constants 里的楼层高度判定
             if (y < Constants.Housing.BasementThreshold) return Config.Basement;
             if (y >= Constants.Housing.BasementThreshold && y < Constants.Housing.UpperFloorThreshold) return Config.GroundFloor;
 
@@ -473,7 +516,7 @@ namespace AlmondHousing
             return false;
         }
 
-        public unsafe void LoadInterior()
+        public void LoadInterior()
         {
             SaveLayoutManager.LoadInteriorFixtures();
             List<HousingGameObject> dObjects;
@@ -490,7 +533,7 @@ namespace AlmondHousing
                 if (!IsSelectedFloor(gameObject.Y)) continue;
 
                 var housingItem = new HousingItem(item, gameObject);
-                housingItem.ItemStruct = (IntPtr)gameObject.Item;
+                housingItem.ItemStruct = (nint)gameObject.Item;
 
                 if (gameObject.Item != null && gameObject.Item->MaterialManager != null)
                 {
@@ -503,7 +546,7 @@ namespace AlmondHousing
             Config.Save();
         }
 
-        public unsafe void LoadIsland()
+        public void LoadIsland()
         {
             SaveLayoutManager.LoadIslandFixtures();
             List<HousingGameObject> objects;
@@ -519,7 +562,7 @@ namespace AlmondHousing
                 if (item.Equals(null) || item.RowId == 0) continue;
 
                 var housingItem = new HousingItem(item, gameObject);
-                housingItem.ItemStruct = (IntPtr)gameObject.Item;
+                housingItem.ItemStruct = (nint)gameObject.Item;
                 ExteriorItemList.Add(housingItem);
             }
             Config.Save();
@@ -527,8 +570,8 @@ namespace AlmondHousing
 
         public void GetGameLayout()
         {
-            Memory Mem = Memory.Instance;
-            var currentTerritory = Mem.GetCurrentTerritory();
+            Memory mem = Memory.Instance;
+            var currentTerritory = mem.GetCurrentTerritory();
             var itemList = currentTerritory == HousingArea.Indoors ? InteriorItemList : ExteriorItemList;
             itemList.Clear();
 
@@ -550,7 +593,7 @@ namespace AlmondHousing
             Config.Save();
         }
 
-        public unsafe void CommandHandler(string command, string arguments)
+        public void CommandHandler(string command, string arguments)
         {
             var args = arguments.Trim().Replace("\"", string.Empty);
             try
@@ -576,6 +619,19 @@ namespace AlmondHousing
             DalamudApi.PluginLog.Error(msg);
             if (detail_message.Length > 0) DalamudApi.PluginLog.Error(detail_message);
             DalamudApi.ChatGui.PrintError(msg);
+        }
+
+        public void Dispose()
+        {
+            HookManager.Dispose();
+            try { Memory.Instance.SetPlaceAnywhere(false); }
+            catch (Exception ex) { DalamudApi.PluginLog.Error(ex, "Error while calling PluginMemory.Dispose()"); }
+
+            // ⚡⚡⚡ 断开高阶 UI 电源防止泄漏 ⚡⚡⚡
+            DalamudApi.PluginInterface.UiBuilder.Draw -= AdvancedTuningUI.Draw;
+
+            DalamudApi.CommandManager.RemoveHandler("/almond");
+            Gui?.Dispose();
         }
     }
 }
